@@ -1,0 +1,3 @@
+[workspace]
+members = ["sat_lib", "sat_solver"]
+default-members = ["sat_solver"]
