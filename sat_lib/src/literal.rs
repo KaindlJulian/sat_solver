@@ -1,10 +1,24 @@
 use std::fmt;
+use std::ops::Not;
 
+/// Variables are represented as numbers starting from 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Variable {
-    index: u32,
+    pub index: u32,
 }
 
+impl Variable {
+    pub fn from_index(index: u32) -> Variable {
+        Variable { index }
+    }
+}
+
+/// A literal is a (negated) variable and its code calculated from the variable index:
+/// ```
+/// let variable = 5;
+/// let positive_lit =  5 * 2;      // 10
+/// let negative_lit =  5 * 2 + 1;  // 11
+/// ```
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Literal {
     code: u32,
@@ -49,18 +63,25 @@ impl Literal {
     }
 }
 
-/// Uses the 1-based dimacs encoding.
-impl fmt::Debug for Literal {
+impl Not for Literal {
+    type Output = Literal;
+    fn not(self) -> Self::Output {
+        Literal {
+            code: self.code ^ 1,
+        }
+    }
+}
+
+impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sign = if self.is_positive() { 1 } else { -1 };
+        let sign = if self.is_positive() { 1 } else { -1 }; // 1-based dimacs encoding
         write!(f, "{}", (self.index() as i32 + 1) * sign)
     }
 }
 
-/// Uses the 1-based dimacs encoding.
-impl fmt::Display for Literal {
+impl fmt::Debug for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sign = if self.is_positive() { 1 } else { -1 };
+        let sign = if self.is_positive() { 1 } else { -1 }; // 1-based dimacs encoding
         write!(f, "{}", (self.index() as i32 + 1) * sign)
     }
 }

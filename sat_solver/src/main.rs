@@ -1,8 +1,8 @@
-use sat_lib::parse::parse_dimacs_cnf;
+use sat_lib::cnf::CNF;
 
 fn main() {
-    let file = include_str!("../../test-formulas/add2.in");
-    let cnf = parse_dimacs_cnf(file).unwrap().1;
+    let file = include_str!("../../test-formulas/eq1.in");
+    let cnf = CNF::from_clauses(vec![vec![-1, 2, 3], vec![1]]);
 
-    print!("{:?}", cnf);
+    dbg!(cnf);
 }

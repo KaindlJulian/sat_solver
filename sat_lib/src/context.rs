@@ -1,19 +1,26 @@
 use crate::clause::Clause;
 use crate::cnf::CNF;
+use crate::literal::Variable;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Context {
-    clauses: Box<[Clause]>,
+    clauses: Vec<Clause>, //TODO: split into binary and long (3+ lits) clauses
+    variables: HashSet<Variable>,
 }
 
 impl Context {
-    pub fn new(cnf: CNF) -> Context {
+    pub fn new() -> Context {
         Context {
-            clauses: cnf
-                .into_clauses()
-                .into_iter()
-                .map(|c| Clause::from_lit_vec(c))
-                .collect(),
+            clauses: vec![],
+            variables: HashSet::new(),
+        }
+    }
+
+    pub fn from_cnf(cnf: CNF) -> Context {
+        Context {
+            variables: cnf.variables(),
+            clauses: cnf.clauses(),
         }
     }
 
