@@ -13,7 +13,8 @@ impl Variable {
     }
 }
 
-/// A literal is a (negated) variable and its code calculated from the variable index:
+/// Literals are represented as numbers starting from 0, where a literal is calculated from the
+/// variable as follows:
 /// ```
 /// let variable = 5;
 /// let positive_lit =  5 * 2;      // 10

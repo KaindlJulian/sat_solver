@@ -1,26 +1,26 @@
 use crate::clause::Clause;
 use crate::cnf::CNF;
 use crate::literal::Variable;
-use std::collections::HashSet;
 
+/// Outer container that holds all solver data
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Context {
-    clauses: Vec<Clause>, //TODO: split into binary and long (3+ lits) clauses
-    variables: HashSet<Variable>,
+    clauses: Vec<Clause>,
+    variables: Vec<Variable>,
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
             clauses: vec![],
-            variables: HashSet::new(),
+            variables: vec![],
         }
     }
 
     pub fn from_cnf(cnf: CNF) -> Context {
         Context {
-            variables: cnf.variables(),
             clauses: cnf.clauses(),
+            variables: cnf.variables(),
         }
     }
 

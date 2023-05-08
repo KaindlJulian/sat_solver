@@ -6,3 +6,4 @@ https://jix.one/refactoring-varisat-2-clause-storage-and-unit-propagation/
 
 bcp:
 https://github.com/jix/starlit/blob/main/starlit/src/prop/unit_prop.rs
+https://github.com/arminbiere/cadical/blob/master/src/propagate.cpp

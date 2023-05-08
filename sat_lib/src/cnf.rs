@@ -6,7 +6,7 @@ use std::collections::HashSet;
 #[derive(Default, Debug)]
 pub struct CNF {
     clauses: Vec<Clause>,
-    variables: HashSet<Variable>,
+    variables: Vec<Variable>,
 }
 
 impl CNF {
@@ -20,7 +20,7 @@ impl CNF {
     }
 
     pub fn from_clauses(clauses: Vec<Vec<i32>>) -> CNF {
-        let variables: HashSet<Variable> = HashSet::from_iter(
+        let variable_set: HashSet<Variable> = HashSet::from_iter(
             clauses
                 .iter()
                 .flat_map(|c| c.iter().copied())
@@ -37,11 +37,11 @@ impl CNF {
                     )
                 })
                 .collect(),
-            variables,
+            variables: variable_set.into_iter().collect(),
         }
     }
 
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> Vec<Variable> {
         self.variables.clone()
     }
 
