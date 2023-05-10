@@ -86,3 +86,31 @@ impl fmt::Debug for Literal {
         write!(f, "{}", (self.index() as i32 + 1) * sign)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_variable_literal_mapping() {
+        let var_index = 3;
+        let var = Variable { index: var_index };
+
+        assert_eq!(var, Literal::from_index(var_index, false).variable());
+        assert_eq!(var, Literal::from_index(var_index, true).variable());
+
+        assert_eq!(var_index * 2, Literal::from_index(3, false).code);
+        assert_eq!(var_index * 2 + 1, Literal::from_index(3, true).code);
+    }
+
+    #[test]
+    fn test_literal_negation() {
+        let code = 0;
+        let literal = Literal { code };
+
+        assert!(literal.is_positive());
+        assert!(!literal.is_negative());
+        assert_eq!(code + 1, (!literal).code);
+        assert_eq!(code, (!(!literal)).code);
+    }
+}
