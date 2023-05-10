@@ -1,3 +1,3 @@
 [workspace]
-members = ["sat_lib", "sat_cli"]
-default-members = ["sat_cli"]
+members = ["satori_lib", "satori_cli"]
+default-members = ["satori_cli"]

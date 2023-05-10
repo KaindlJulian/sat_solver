@@ -1,7 +1,7 @@
 [package]
-name = "sat_cli"
+name = "satori_lib"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sat_lib = { path = "../sat_lib" }
+nom = "7.1.2"

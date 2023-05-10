@@ -15,17 +15,18 @@ impl CNF {
     }
 
     pub fn from_dimacs(input: &str) -> CNF {
-        let clauses = parse_dimacs_cnf(input).unwrap().1;
+        let clauses = parse_dimacs_cnf(input).expect("parsing error").1;
         CNF::from_clauses(clauses)
     }
 
     pub fn from_clauses(clauses: Vec<Vec<i32>>) -> CNF {
-        let variable_set: HashSet<Variable> = HashSet::from_iter(
-            clauses
-                .iter()
-                .flat_map(|c| c.iter().copied())
-                .map(|l| Variable::from_index(l as u32)),
-        );
+        let max_var = clauses
+            .iter()
+            .flat_map(|c| c.iter())
+            .map(|l| l.abs())
+            .max()
+            .unwrap_or(0) as u32;
+
         CNF {
             clauses: clauses
                 .iter()
@@ -37,7 +38,9 @@ impl CNF {
                     )
                 })
                 .collect(),
-            variables: variable_set.into_iter().collect(),
+            variables: (0..max_var)
+                .map(|i| Variable::from_index(i))
+                .collect::<Vec<Variable>>(),
         }
     }
 

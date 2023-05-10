@@ -3,7 +3,7 @@ use crate::cnf::CNF;
 use crate::literal::Variable;
 
 /// Outer container that holds all solver data
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct Context {
     clauses: Vec<Clause>,
     variables: Vec<Variable>,
