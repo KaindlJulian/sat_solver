@@ -1,7 +1,6 @@
 use crate::clause::Clause;
 use crate::literal::{Literal, Variable};
 use crate::parse::parse_dimacs_cnf;
-use std::collections::HashSet;
 
 #[derive(Default, Debug)]
 pub struct CNF {

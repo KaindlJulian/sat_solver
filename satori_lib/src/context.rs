@@ -10,13 +10,6 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new() -> Context {
-        Context {
-            clauses: vec![],
-            variables: vec![],
-        }
-    }
-
     pub fn from_cnf(cnf: CNF) -> Context {
         Context {
             clauses: cnf.clauses(),

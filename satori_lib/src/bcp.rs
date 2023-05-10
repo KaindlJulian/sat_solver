@@ -23,7 +23,7 @@ pub struct BcpContext {
 }
 
 /// Execute one run of BCP
-pub fn propagate(context: &mut Context, bcp: &mut BcpContext) -> Result<(), ()> {
+pub fn propagate(bcp: &mut BcpContext) -> Result<(), ()> {
     while let Some(literal) = bcp.trail.next_unpropagated_literal() {
         bcp_binary_clauses(bcp, literal)?;
         bcp_long_clauses(bcp, literal)?;
@@ -62,7 +62,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), ()> 
 fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), ()> {
     let not_literal = !literal;
 
-    let mut watches = bcp.watch.get_watchlist(&not_literal);
+    let watches = bcp.watch.get_watchlist(&not_literal);
 
     Ok(())
 }

@@ -16,3 +16,22 @@ pub fn parse_dimacs_cnf(input: &str) -> IResult<&str, Vec<Vec<i32>>> {
     let (input, clauses) = separated_list1(pair(tag(" 0"), line_ending), parse_clause)(input)?;
     Ok((input, clauses))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_clause() {
+        let input = "1 -2 8 -5 0";
+        let result = parse_clause(input).expect("parse error").1;
+        assert_eq!(result, vec![1, -2, 8, -5]);
+    }
+
+    #[test]
+    fn test_parse_dimacs_cnf() {
+        let input = "p cnf 2 2\n1 0\n-1 2 0\n";
+        let result = parse_dimacs_cnf(input).expect("parse error").1;
+        assert_eq!(result, vec![vec![1], vec![-1, 2]]);
+    }
+}
