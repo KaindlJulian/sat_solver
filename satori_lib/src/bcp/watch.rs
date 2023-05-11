@@ -1,4 +1,4 @@
-use crate::bcp::long_clauses::LongClauses;
+use crate::bcp::long_clauses::{ClauseIndex, LongClauses};
 use crate::literal::Literal;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[derive(Debug, Copy, Clone)]
 pub struct LiteralWatch {
     /// index of the clause being watched
-    pub clause_index: usize,
+    pub clause_index: ClauseIndex,
 }
 
 /// For every literal, keeps a list of clauses watched by this literal
@@ -18,7 +18,7 @@ pub struct Watchlists {
 
 impl Watchlists {
     /// watch a clause with 2 instances of [`LiteralWatch`]
-    pub fn watch_clause(&mut self, clause_index: usize, lits: [Literal; 2]) {
+    pub fn watch_clause(&mut self, clause_index: ClauseIndex, lits: [Literal; 2]) {
         for i in 0..2 {
             let watch = LiteralWatch { clause_index };
 
@@ -31,9 +31,13 @@ impl Watchlists {
         }
     }
 
-    /// Find watches for given literal
-    pub fn get_watchlist(&self, lit: &Literal) -> &Vec<LiteralWatch> {
-        &self.watches.get(lit).unwrap()
+    /// Take ownership of a literals watchlist
+    pub fn take_watchlist(&self, lit: Literal) -> Vec<LiteralWatch> {
+        self.watches.get(&lit).unwrap().drain(..).collect()
+    }
+
+    pub fn place_watchlist(&mut self, lit: Literal, watchlist: Vec<LiteralWatch>) {
+        self.watches.insert(lit, watchlist);
     }
 }
 

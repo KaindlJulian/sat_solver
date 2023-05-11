@@ -3,7 +3,6 @@ use crate::bcp::binary_clauses::BinaryClauses;
 use crate::bcp::long_clauses::LongClauses;
 use crate::bcp::trail::{AssignmentCause, Step, Trail};
 use crate::bcp::watch::Watchlists;
-use crate::context::Context;
 use crate::literal::Literal;
 
 pub mod binary_clauses;
@@ -17,7 +16,7 @@ pub struct BcpContext {
     pub is_unsat: bool,
     pub assignment: VariableAssignment,
     pub binary_clauses: BinaryClauses,
-    pub non_binary: LongClauses,
+    pub long_clauses: LongClauses,
     pub watch: Watchlists,
     pub trail: Trail,
 }
@@ -60,9 +59,53 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), ()> 
 }
 
 fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), ()> {
+    // we look for clauses with !literal
     let not_literal = !literal;
 
-    let watches = bcp.watch.get_watchlist(&not_literal);
+    let mut watches = bcp.watch.take_watchlist(not_literal);
+    let mut result = Ok(());
 
-    Ok(())
+    'watches: for watch in watches.iter_mut() {
+        let clause = bcp.long_clauses.find_clause_mut(watch.clause_index);
+        let literals = clause.literals();
+
+        let other_watched_literal = match not_literal == literals[0] {
+            true => literals[1],
+            false => literals[0],
+        };
+
+        // the clause is already satisfied by the other watched literal
+        if bcp.assignment.get_literal_value(other_watched_literal) == AssignedValue::True {
+            continue;
+        }
+
+        // search other clauses to find watched literal replacement
+        for i in 2..literals.len() {
+            let current_lit = literals[i];
+            // check for non-false literal
+            match bcp.assignment.get_literal_value(current_lit) {
+                AssignedValue::True | AssignedValue::Unknown => {
+                    // watch current literal
+                    // change literal order to keep the watched literals at index 0 and 1
+                }
+                _ => {}
+            }
+            continue 'watches;
+        }
+
+        // did not find a non-false non-watched literal
+        match bcp.assignment.get_literal_value(other_watched_literal) {
+            // clause is unit
+            AssignedValue::True | AssignedValue::Unknown => {
+                // propagate other watched literal
+            }
+            // conflict, all literals are false
+            AssignedValue::False => {
+                result = Err(());
+                break;
+            }
+        }
+    }
+
+    return result;
 }
