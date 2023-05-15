@@ -1,23 +1,24 @@
 use crate::assignment::VariableAssignment;
-use crate::clause::Clause;
 use crate::literal::{Literal, Variable};
 use std::collections::HashMap;
+use crate::bcp::BcpContext;
+use crate::clause::ClauseIndex;
 
-pub enum AssignmentCause {
-    /// Guessed by the solver
-    Guess,
+pub enum Reason {
+    /// Decided by the solver/heuristic
+    SolverDecision,
     /// Implied by a unit clause
     Unit,
-    /// Implied by a binary clause because the given literal is false.
+    /// Implied by a binary clause because the given other literal of the binary clause is false.
     Binary(Literal),
     /// Implied by a long clause because all but its first literal are false.
-    Long(Clause),
+    Long(ClauseIndex),
 }
 
 pub struct Step {
     pub assigned_literal: Literal,
     pub decision_level: u32,
-    pub cause: AssignmentCause,
+    pub reason: Reason,
 }
 
 #[derive(Default)]
@@ -36,8 +37,12 @@ impl Trail {
             .expect("variable is not set") as u32
     }
 
-    pub fn propagated_lit_count(&self) -> usize {
+    pub fn propagated(&self) -> usize {
         self.propagated
+    }
+
+    pub fn increase_propagated(&mut self) {
+        self.propagated += 1;
     }
 
     pub fn next_unpropagated_literal(&self) -> Option<Literal> {
@@ -49,13 +54,28 @@ impl Trail {
     pub fn current_decision_level(&self) -> u32 {
         self.decisions.len() as u32 - 1
     }
+
+    pub fn step_history(&self) -> &Vec<Step> {
+        &self.steps
+    }
 }
 
-/// add step to trail and assign the literal
+/// adds given step to the trail, assigning the literal
 pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step) {
     trail
         .step_index_by_var
         .insert(step.assigned_literal.variable(), trail.steps.len());
     values.set_true(step.assigned_literal);
     trail.steps.push(step);
+}
+
+/// adds a solver decision to the trail, assigning the literal
+pub fn decide_and_assign(bcp: &mut BcpContext, literal: Literal) {
+    bcp.trail.decisions.push(bcp.trail.steps.len() as u32);
+    let step = Step {
+        assigned_literal: literal,
+        decision_level: bcp.trail.current_decision_level(),
+        reason: Reason::SolverDecision,
+    };
+    assign(&mut bcp.assignment, &mut bcp.trail, step);
 }

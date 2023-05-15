@@ -20,7 +20,7 @@ impl Variable {
 /// let positive_lit =  5 * 2;      // 10
 /// let negative_lit =  5 * 2 + 1;  // 11
 /// ```
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Literal {
     code: u32,
 }
@@ -40,13 +40,18 @@ impl Literal {
     pub fn from_dimacs(value: i32) -> Literal {
         Literal::from_index((value.abs() - 1) as u32, value < 0)
     }
-
-    pub fn index(&self) -> usize {
-        self.code as usize >> 1
+    
+    pub fn as_code(&self) -> u32 {
+        self.code
     }
 
-    pub fn code(&self) -> u32 {
-        self.code
+    pub fn as_dimacs_integer(&self) -> i32 {
+        let index = self.code as i32 >> 1;
+        if self.is_positive() {
+            index + 1
+        } else {
+            0 - (index + 1)
+        }
     }
 
     pub fn variable(&self) -> Variable {
@@ -56,7 +61,7 @@ impl Literal {
     }
 
     pub fn is_positive(self) -> bool {
-        (self.code & 1) == 0
+        (self.code & 1) == 0 // even codes represent positive literals
     }
 
     pub fn is_negative(self) -> bool {
@@ -68,22 +73,20 @@ impl Not for Literal {
     type Output = Literal;
     fn not(self) -> Self::Output {
         Literal {
-            code: self.code ^ 1,
+            code: self.code ^ 1, // swap lsb
         }
     }
 }
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sign = if self.is_positive() { 1 } else { -1 }; // 1-based dimacs encoding
-        write!(f, "{}", (self.index() as i32 + 1) * sign)
+        write!(f, "{}", (self.as_dimacs_integer()))
     }
 }
 
 impl fmt::Debug for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sign = if self.is_positive() { 1 } else { -1 }; // 1-based dimacs encoding
-        write!(f, "{}", (self.index() as i32 + 1) * sign)
+        write!(f, "{}", (self.as_dimacs_integer()))
     }
 }
 
@@ -112,5 +115,12 @@ mod tests {
         assert!(!literal.is_negative());
         assert_eq!(code + 1, (!literal).code);
         assert_eq!(code, (!(!literal)).code);
+    }
+
+    #[test]
+    fn test_display() {
+        let literal = Literal::from_index(0, false);
+        assert_eq!(1, literal.as_dimacs_integer());
+        assert_eq!(-1, (!literal).as_dimacs_integer());
     }
 }

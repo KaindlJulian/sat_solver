@@ -1,6 +1,7 @@
 use crate::clause::Clause;
 use crate::literal::{Literal, Variable};
 use crate::parse::parse_dimacs_cnf;
+use std::path::PathBuf;
 
 #[derive(Default, Debug)]
 pub struct CNF {
@@ -13,12 +14,19 @@ impl CNF {
         CNF::default()
     }
 
-    pub fn from_dimacs(input: &str) -> CNF {
+    /// Creates a cnf formula from a string in dimacs cnf format
+    pub fn from_str(input: &str) -> CNF {
         let clauses = parse_dimacs_cnf(input).expect("parsing error").1;
-        CNF::from_clauses(clauses)
+        CNF::from_clauses(&clauses)
     }
 
-    pub fn from_clauses(clauses: Vec<Vec<i32>>) -> CNF {
+    /// Creates a cnf formula from a file in dimacs cnf format
+    pub fn from_file(file: PathBuf) -> CNF {
+        CNF::from_str(std::fs::read_to_string(file).expect("fs error").as_str())
+    }
+
+    /// Creates a cnf formula from literals
+    pub fn from_clauses(clauses: &Vec<Vec<i32>>) -> CNF {
         let max_var = clauses
             .iter()
             .flat_map(|c| c.iter())
@@ -49,5 +57,40 @@ impl CNF {
 
     pub fn clauses(&self) -> Vec<Clause> {
         self.clauses.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_clauses() {
+        let clauses = vec![vec![1], vec![1, -2, -3], vec![4, 5]];
+        let cnf = CNF::from_clauses(&clauses);
+        assert_eq!(3, cnf.clauses.len());
+        assert_eq!(5, cnf.variables.len());
+        assert_eq!(
+            cnf.clauses
+                .iter()
+                .flat_map(|c| c.literals().iter().map(|l| l.as_dimacs_integer()))
+                .collect::<Vec<i32>>(),
+            clauses
+                .iter()
+                .flat_map(|c| c.iter().cloned())
+                .collect::<Vec<i32>>()
+        )
+    }
+
+    #[test]
+    fn test_variable_count() {
+        let cnf = CNF::from_clauses(&vec![vec![1, 2, 3], vec![10]]);
+
+        // the formula should contain all variables. also variables between 3 and 10
+        assert_eq!(10, cnf.variables.len());
+        assert_eq!(
+            (0..10).collect::<Vec<_>>(),
+            cnf.variables.iter().map(|v| v.index).collect::<Vec<_>>()
+        );
     }
 }

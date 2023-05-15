@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod assignment;
 pub mod bcp;
 pub mod clause;

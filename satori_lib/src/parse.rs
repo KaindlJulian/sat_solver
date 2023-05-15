@@ -1,6 +1,6 @@
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::{line_ending, space1};
-use nom::multi::separated_list1;
+use nom::multi::{many0, separated_list1};
 use nom::sequence::pair;
 use nom::IResult;
 
@@ -11,8 +11,8 @@ fn parse_clause(input: &str) -> IResult<&str, Vec<i32>> {
 }
 
 pub fn parse_dimacs_cnf(input: &str) -> IResult<&str, Vec<Vec<i32>>> {
-    let (input, _) = tag("p cnf ")(input)?;
-    let (input, _) = pair(take_until("\n"), tag("\n"))(input)?;
+    // header is optional
+    let (input, _) = many0(pair(pair(tag("p cnf "), take_until("\n")), tag("\n")))(input)?;
     let (input, clauses) = separated_list1(pair(tag(" 0"), line_ending), parse_clause)(input)?;
     Ok((input, clauses))
 }
@@ -31,6 +31,13 @@ mod tests {
     #[test]
     fn test_parse_dimacs_cnf() {
         let input = "p cnf 2 2\n1 0\n-1 2 0\n";
+        let result = parse_dimacs_cnf(input).expect("parse error").1;
+        assert_eq!(result, vec![vec![1], vec![-1, 2]]);
+    }
+
+    #[test]
+    fn test_parse_dimacs_cnf_without_first_line() {
+        let input = "1 0\n-1 2 0\n";
         let result = parse_dimacs_cnf(input).expect("parse error").1;
         assert_eq!(result, vec![vec![1], vec![-1, 2]]);
     }

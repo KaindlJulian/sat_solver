@@ -1,4 +1,5 @@
-use crate::bcp::long_clauses::{ClauseIndex, LongClauses};
+use crate::bcp::long_clauses::LongClauses;
+use crate::clause::ClauseIndex;
 use crate::literal::Literal;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -17,7 +18,7 @@ pub struct Watchlists {
 }
 
 impl Watchlists {
-    /// watch a clause with 2 instances of [`LiteralWatch`]
+    /// create new watches for a clause
     pub fn watch_clause(&mut self, clause_index: ClauseIndex, lits: [Literal; 2]) {
         for i in 0..2 {
             let watch = LiteralWatch { clause_index };
@@ -31,19 +32,33 @@ impl Watchlists {
         }
     }
 
+    pub fn add_watch(&mut self, lit: Literal, watch: LiteralWatch) {
+        match self.watches.entry(lit) {
+            Entry::Occupied(mut e) => e.get_mut().push(watch),
+            Entry::Vacant(e) => {
+                e.insert(vec![watch]);
+            }
+        }
+    }
+
     /// Take ownership of a literals watchlist
-    pub fn take_watchlist(&self, lit: Literal) -> Vec<LiteralWatch> {
-        self.watches.get(&lit).unwrap().drain(..).collect()
+    pub fn take_watchlist(&mut self, lit: Literal) -> Vec<LiteralWatch> {
+        self.watches.remove(&lit).unwrap_or(vec![])
     }
 
     pub fn place_watchlist(&mut self, lit: Literal, watchlist: Vec<LiteralWatch>) {
         self.watches.insert(lit, watchlist);
     }
-}
 
-fn build_watchlists(watch: &mut Watchlists, long_clauses: &LongClauses) {
-    for (index, clause) in long_clauses.clauses.iter().enumerate() {
-        let literals = clause.literals();
-        watch.watch_clause(index, [literals[0], literals[1]]);
+    pub fn clear(&mut self) {
+        self.watches.clear();
+    }
+
+    pub fn build_watchlists(&mut self, long_clauses: &LongClauses) {
+        self.clear();
+        for (index, clause) in long_clauses.clauses().iter().enumerate() {
+            let literals = clause.literals();
+            self.watch_clause(index, [literals[0], literals[1]]);
+        }
     }
 }

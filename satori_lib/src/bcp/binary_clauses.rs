@@ -20,6 +20,7 @@ impl BinaryClauses {
         }
     }
 
+    /// Returns all clauses that contain the given literal
     pub fn get_clauses(&self, literal: Literal) -> &[Literal] {
         &self
             .literal_lookup
