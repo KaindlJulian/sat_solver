@@ -3,6 +3,7 @@ use crate::clause::ClauseIndex;
 use crate::literal::Literal;
 
 /// Set of literals that make the formula unsat when conjunctively added to the formula
+#[derive(Debug)]
 pub enum Conflict {
     BinaryClause([Literal; 2]),
     LongClause(ClauseIndex),

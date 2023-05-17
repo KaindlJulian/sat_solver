@@ -4,18 +4,26 @@ use crate::bcp::conflict::Conflict;
 use crate::bcp::long_clauses::LongClauses;
 use crate::bcp::trail::{Reason, Step, Trail};
 use crate::bcp::watch::Watchlists;
+use crate::clause::ClauseIndex;
 use crate::literal::Literal;
 
-pub mod binary_clauses;
+mod binary_clauses;
 pub mod conflict;
-pub mod long_clauses;
+mod long_clauses;
 pub mod trail;
-pub mod watch;
+mod watch;
+
+/// Reference to an added clause
+pub enum AddedClause {
+    Empty,
+    Unit(Literal),
+    Binary([Literal; 2]),
+    Long(ClauseIndex),
+}
 
 /// data for bcp and backtracking
 #[derive(Default)]
 pub struct BcpContext {
-    is_init: bool,
     pub is_unsat: bool,
     pub assignment: VariableAssignment,
     pub binary_clauses: BinaryClauses,
@@ -26,18 +34,14 @@ pub struct BcpContext {
 
 impl BcpContext {
     pub fn init(&mut self) {
-        self.is_init = true;
         self.watch.build_watchlists(&self.long_clauses);
     }
 
-    pub fn add_clause(&mut self, literals: &[Literal]) {
-        if self.is_init {
-            panic!("must be uninitialized to add clauses");
-        }
-
+    pub fn add_clause(&mut self, literals: &[Literal]) -> AddedClause {
         match *literals {
             [] => {
                 self.is_unsat = true;
+                AddedClause::Empty
             }
             [a] => {
                 if self.assignment.get_value(a.variable()) == AssignedValue::False {
@@ -49,13 +53,16 @@ impl BcpContext {
                     reason: Reason::Unit,
                 };
                 trail::assign(&mut self.assignment, &mut self.trail, step);
+                AddedClause::Unit(a)
             }
             [a, b] => {
                 self.binary_clauses.add_clause([a, b]);
+                AddedClause::Binary([a, b])
             }
             [a, b, ..] => {
                 let index = self.long_clauses.add_clause(literals);
                 self.watch.watch_clause(index, [a, b]);
+                AddedClause::Long(index)
             }
         }
     }
@@ -63,10 +70,6 @@ impl BcpContext {
 
 /// Repeatedly execute BCP until a fixed point is reached
 pub fn propagate(bcp: &mut BcpContext) -> Result<(), Conflict> {
-    if !bcp.is_init {
-        panic!("bcp is not initialized")
-    }
-
     while let Some(literal) = bcp.trail.next_unpropagated_literal() {
         bcp_binary_clauses(bcp, literal)?;
         bcp_long_clauses(bcp, literal)?;
@@ -188,12 +191,12 @@ mod tests {
     use crate::cnf::CNF;
 
     #[test]
-    fn basic_bcp() {
+    fn test_basic_bcp() {
         let mut bcp = BcpContext::default();
         let cnf = CNF::from_str("-1 2 0\n-2 3 0\n-2 -3 -4 0\n");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals())
+            bcp.add_clause(c.literals());
         }
 
         bcp.init();
@@ -202,7 +205,7 @@ mod tests {
         assert!(propagate(&mut bcp).is_ok());
         let assignment = bcp
             .trail
-            .step_history()
+            .steps()
             .iter()
             .map(|s| s.assigned_literal)
             .map(|l| l.as_dimacs_integer())
@@ -212,12 +215,12 @@ mod tests {
     }
 
     #[test]
-    fn basic_conflict() {
+    fn test_basic_conflict() {
         let mut bcp = BcpContext::default();
         let cnf = CNF::from_str("-1 2 0\n-1 3 0\n-2 -3 0\n");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals())
+            bcp.add_clause(c.literals());
         }
 
         bcp.init();
@@ -225,22 +228,19 @@ mod tests {
 
         match propagate(&mut bcp) {
             Err(Conflict::BinaryClause(literals)) => {
-                assert_eq!(
-                    literals,
-                    cnf.clauses()[2].literals()
-                );
+                assert_eq!(literals, cnf.clauses()[2].literals());
             }
             _ => panic!("expected a conflict"),
         };
     }
 
     #[test]
-    fn exercise_5_conflict() {
+    fn test_exercise_5_conflict() {
         let mut bcp = BcpContext::default();
         let cnf = CNF::from_str("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals())
+            bcp.add_clause(c.literals());
         }
 
         bcp.init();
@@ -254,12 +254,34 @@ mod tests {
         match propagate(&mut bcp) {
             Err(Conflict::BinaryClause(literals)) => {
                 // expect conflict with clause c6: [-5, -6]
-                assert_eq!(
-                    literals,
-                    cnf.clauses()[5].literals()
-                );
+                assert_eq!(literals, cnf.clauses()[5].literals());
             }
-            _ => panic!("expected a conflict"),
+            _ => panic!("expected a conflict from binary clause"),
         };
+    }
+
+    #[test]
+    fn test_exercise_6_failed_literals() {
+        for test_lit in [-1, 3, 4, 1, -2] {
+            let mut bcp = BcpContext::default();
+            let cnf = CNF::from_str("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
+
+            for c in cnf.clauses().iter() {
+                bcp.add_clause(c.literals());
+            }
+
+            bcp.init();
+
+            trail::decide_and_assign(&mut bcp, Literal::from_dimacs(test_lit));
+
+            match propagate(&mut bcp) {
+                Ok(_) => {
+                    println!("OK");
+                }
+                Err(conflict) => {
+                    dbg!(conflict);
+                }
+            }
+        }
     }
 }

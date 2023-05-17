@@ -11,6 +11,12 @@ impl Variable {
     pub fn from_index(index: u32) -> Variable {
         Variable { index }
     }
+
+    pub fn from_dimacs(number: i32) -> Variable {
+        Variable {
+            index: number.abs() as u32 - 1,
+        }
+    }
 }
 
 /// Literals are represented as numbers starting from 0, where a literal is calculated from the
@@ -40,7 +46,7 @@ impl Literal {
     pub fn from_dimacs(value: i32) -> Literal {
         Literal::from_index((value.abs() - 1) as u32, value < 0)
     }
-    
+
     pub fn as_code(&self) -> u32 {
         self.code
     }

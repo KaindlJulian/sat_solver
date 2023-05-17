@@ -1,5 +1,4 @@
-extern crate core;
-
+pub mod analyze;
 pub mod assignment;
 pub mod bcp;
 pub mod clause;
@@ -7,4 +6,5 @@ pub mod cnf;
 pub mod context;
 pub mod literal;
 pub mod parse;
+pub mod search;
 pub mod solver;

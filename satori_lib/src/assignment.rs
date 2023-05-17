@@ -10,12 +10,6 @@ pub enum AssignedValue {
     Unknown,
 }
 
-impl Default for AssignedValue {
-    fn default() -> Self {
-        AssignedValue::Unknown
-    }
-}
-
 impl Not for AssignedValue {
     type Output = AssignedValue;
 
@@ -39,12 +33,12 @@ impl VariableAssignment {
         VariableAssignment {
             partial: vars
                 .iter()
-                .map(|v| (v.clone(), AssignedValue::default()))
+                .map(|v| (v.clone(), AssignedValue::Unknown))
                 .collect(),
         }
     }
 
-    pub fn set_true(&mut self, lit: Literal) {
+    pub fn assign_true(&mut self, lit: Literal) {
         self.partial.insert(
             lit.variable(),
             if lit.is_positive() {
@@ -53,9 +47,10 @@ impl VariableAssignment {
                 AssignedValue::False
             },
         );
+        self.number_assigned += 1;
     }
 
-    pub fn set_false(&mut self, lit: Literal) {
+    pub fn assign_false(&mut self, lit: Literal) {
         self.partial.insert(
             lit.variable(),
             if lit.is_negative() {
@@ -64,10 +59,12 @@ impl VariableAssignment {
                 AssignedValue::False
             },
         );
+        self.number_assigned += 1;
     }
 
-    pub fn set_unknown(&mut self, var: Variable) {
+    pub fn assign_unknown(&mut self, var: Variable) {
         self.partial.insert(var, AssignedValue::Unknown);
+        self.number_assigned -= 1;
     }
 
     pub fn is_assigned(&self, var: Variable) -> bool {
@@ -112,11 +109,11 @@ mod tests {
         let var = lit.variable();
 
         assert_eq!(AssignedValue::Unknown, assignments.get_value(var));
-        assignments.set_true(lit);
+        assignments.assign_true(lit);
         assert_eq!(AssignedValue::True, assignments.get_value(var));
-        assignments.set_true(!lit);
+        assignments.assign_true(!lit);
         assert_eq!(AssignedValue::False, assignments.get_value(var));
-        assignments.set_unknown(var);
+        assignments.assign_unknown(var);
         assert_eq!(AssignedValue::Unknown, assignments.get_value(var));
     }
 
@@ -129,19 +126,19 @@ mod tests {
         assert_eq!(AssignedValue::Unknown, assignments.get_literal_value(a));
         assert_eq!(AssignedValue::Unknown, assignments.get_literal_value(!a));
         // a = true
-        assignments.set_true(a);
+        assignments.assign_true(a);
         assert_eq!(AssignedValue::True, assignments.get_literal_value(a));
         assert_eq!(AssignedValue::False, assignments.get_literal_value(!a));
         // !a = true
-        assignments.set_true(!a);
+        assignments.assign_true(!a);
         assert_eq!(AssignedValue::False, assignments.get_literal_value(a));
         assert_eq!(AssignedValue::True, assignments.get_literal_value(!a));
         // a = false
-        assignments.set_false(a);
+        assignments.assign_false(a);
         assert_eq!(AssignedValue::False, assignments.get_literal_value(a));
         assert_eq!(AssignedValue::True, assignments.get_literal_value(!a));
         // !a = false
-        assignments.set_false(!a);
+        assignments.assign_false(!a);
         assert_eq!(AssignedValue::True, assignments.get_literal_value(a));
         assert_eq!(AssignedValue::False, assignments.get_literal_value(!a));
     }

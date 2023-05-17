@@ -1,9 +1,14 @@
 use crate::assignment::VariableAssignment;
-use crate::literal::{Literal, Variable};
-use std::collections::HashMap;
 use crate::bcp::BcpContext;
 use crate::clause::ClauseIndex;
+use crate::literal::{Literal, Variable};
+use std::collections::HashMap;
 
+pub type StepIndex = usize;
+
+pub static TOP_DECISION_LEVEL: u32 = 0;
+
+#[derive(Debug, PartialEq)]
 pub enum Reason {
     /// Decided by the solver/heuristic
     SolverDecision,
@@ -15,26 +20,46 @@ pub enum Reason {
     Long(ClauseIndex),
 }
 
+impl Reason {
+    pub fn get_false_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
+        match self {
+            Reason::SolverDecision | Reason::Unit => &[],
+            Reason::Binary(literal) => std::slice::from_ref(literal),
+            Reason::Long(clause_index) => &context.long_clauses.get_literals(*clause_index)[1..],
+        }
+    }
+}
+
 pub struct Step {
     pub assigned_literal: Literal,
     pub decision_level: u32,
     pub reason: Reason,
 }
 
-#[derive(Default)]
 pub struct Trail {
     steps: Vec<Step>,
-    step_index_by_var: HashMap<Variable, usize>,
+    step_index_by_var: HashMap<Variable, StepIndex>,
     propagated: usize,
     decisions: Vec<u32>,
 }
 
+impl Default for Trail {
+    fn default() -> Self {
+        Trail {
+            steps: vec![],
+            step_index_by_var: Default::default(),
+            propagated: 0,
+            decisions: vec![0],
+        }
+    }
+}
+
 impl Trail {
-    pub fn trail_index(&self, variable: Variable) -> u32 {
+    pub fn step_index(&self, variable: Variable) -> StepIndex {
         *self
             .step_index_by_var
             .get(&variable)
-            .expect("variable is not set") as u32
+            .expect("variable is not set")
     }
 
     pub fn propagated(&self) -> usize {
@@ -55,8 +80,13 @@ impl Trail {
         self.decisions.len() as u32 - 1
     }
 
-    pub fn step_history(&self) -> &Vec<Step> {
+    pub fn steps(&self) -> &Vec<Step> {
         &self.steps
+    }
+
+    /// Returns the step where given variable was assigned
+    pub fn get_step_for_variable(&self, var: Variable) -> &Step {
+        &self.steps[self.step_index(var)]
     }
 }
 
@@ -65,7 +95,7 @@ pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step) {
     trail
         .step_index_by_var
         .insert(step.assigned_literal.variable(), trail.steps.len());
-    values.set_true(step.assigned_literal);
+    values.assign_true(step.assigned_literal);
     trail.steps.push(step);
 }
 
@@ -78,4 +108,24 @@ pub fn decide_and_assign(bcp: &mut BcpContext, literal: Literal) {
         reason: Reason::SolverDecision,
     };
     assign(&mut bcp.assignment, &mut bcp.trail, step);
+}
+
+/// backtracks to given decision level, undoing assignments of a higher level
+pub fn backtrack(bcp: &mut BcpContext, decision_level: u32) {
+    // backtrack target must be lower than current decision level
+    assert!(decision_level < bcp.trail.current_decision_level());
+
+    // Get the index corresponding to the lowest decision to undo
+    let decision_level = decision_level as usize;
+    let target_trail_len = bcp.trail.decisions[decision_level + 1] as usize;
+
+    // Undo the assignments
+    for step in bcp.trail.steps.drain(target_trail_len..) {
+        bcp.assignment
+            .assign_unknown(step.assigned_literal.variable());
+    }
+
+    // remove from graph
+    bcp.trail.decisions.truncate(decision_level + 1);
+    bcp.trail.propagated = bcp.trail.propagated.min(target_trail_len);
 }
