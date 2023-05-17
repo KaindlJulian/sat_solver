@@ -1,12 +1,12 @@
 use crate::assignment::AssignedValue;
-use crate::bcp::BcpContext;
 use crate::cnf::CNF;
 use crate::literal::Literal;
+use crate::search::{search, SearchContext};
 
 #[derive(Default)]
 pub struct Solver {
     is_init: bool,
-    bcp: BcpContext,
+    search: SearchContext,
 }
 
 impl Solver {
@@ -29,12 +29,12 @@ impl Solver {
         if self.is_init {
             panic!("must be uninitialized to add clauses");
         }
-        self.bcp.add_clause(clause);
+        self.search.bcp.add_clause(clause);
     }
 
     pub fn init(&mut self) {
         self.is_init = true;
-        self.bcp.init();
+        self.search.bcp.init();
     }
 
     /// Check satisfiability of the formula
@@ -42,16 +42,24 @@ impl Solver {
         if !self.is_init {
             self.init();
         }
-        return false;
+        loop {
+            if let Some(result) = search(&mut self.search) {
+                return result;
+            }
+        }
     }
 
-    /// Returns the current partial assignment
-    pub fn get_model(&self) -> &[Literal] {
-        todo!()
+    /// Returns the (partial) assignment
+    pub fn assignment(&self) -> Vec<Literal> {
+        self.search.bcp.assignment.partial()
     }
 
     /// Returns the value assigned to a literal
-    pub fn value(&self, literal: Literal) -> AssignedValue {
-        todo!()
+    pub fn value(&self, literal: Literal) -> Option<bool> {
+        match self.search.bcp.assignment.literal_value(literal) {
+            AssignedValue::True => Some(true),
+            AssignedValue::False => Some(false),
+            AssignedValue::Unknown => None,
+        }
     }
 }

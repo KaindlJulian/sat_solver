@@ -1,8 +1,8 @@
-mod dlis;
-
 use crate::analyze::{analyze, ConflictAnalysis};
 use crate::bcp::{propagate, trail, BcpContext};
 use crate::search::dlis::DLIS;
+
+mod dlis;
 
 /// outer data structures for CDCL search
 #[derive(Default)]

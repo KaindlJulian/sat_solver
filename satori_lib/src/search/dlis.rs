@@ -1,5 +1,7 @@
 use crate::literal::Literal;
 
+// TODO only unresolved clauses?
+
 /// Implements the  Dynamic Largest Individual Sum (DLIS) decision heuristic.
 /// Approach:
 ///  - choose literal that satisfies most clauses
@@ -13,6 +15,7 @@ pub struct DLIS {}
 
 impl DLIS {
     pub fn decide(&self) -> Option<Literal> {
+        // no unassigned variable
         None
     }
 }

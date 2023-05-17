@@ -1,10 +1,11 @@
-pub mod analyze;
-pub mod assignment;
-pub mod bcp;
-pub mod clause;
+extern crate core;
+
+mod analyze;
+mod assignment;
+mod bcp;
+mod clause;
 pub mod cnf;
-pub mod context;
-pub mod literal;
-pub mod parse;
-pub mod search;
+mod literal;
+mod parse;
+mod search;
 pub mod solver;

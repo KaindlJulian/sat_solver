@@ -29,15 +29,6 @@ pub struct VariableAssignment {
 }
 
 impl VariableAssignment {
-    pub fn from_variables(vars: &Vec<Variable>) -> VariableAssignment {
-        VariableAssignment {
-            partial: vars
-                .iter()
-                .map(|v| (v.clone(), AssignedValue::Unknown))
-                .collect(),
-        }
-    }
-
     pub fn assign_true(&mut self, lit: Literal) {
         self.partial.insert(
             lit.variable(),
@@ -47,7 +38,6 @@ impl VariableAssignment {
                 AssignedValue::False
             },
         );
-        self.number_assigned += 1;
     }
 
     pub fn assign_false(&mut self, lit: Literal) {
@@ -59,12 +49,10 @@ impl VariableAssignment {
                 AssignedValue::False
             },
         );
-        self.number_assigned += 1;
     }
 
     pub fn assign_unknown(&mut self, var: Variable) {
         self.partial.insert(var, AssignedValue::Unknown);
-        self.number_assigned -= 1;
     }
 
     pub fn is_assigned(&self, var: Variable) -> bool {
@@ -77,14 +65,14 @@ impl VariableAssignment {
             .unwrap_or(false)
     }
 
-    pub fn get_value(&self, var: Variable) -> AssignedValue {
+    pub fn value(&self, var: Variable) -> AssignedValue {
         self.partial
             .get(&var)
             .map(|v| *v)
             .unwrap_or(AssignedValue::Unknown)
     }
 
-    pub fn get_literal_value(&self, lit: Literal) -> AssignedValue {
+    pub fn literal_value(&self, lit: Literal) -> AssignedValue {
         self.partial
             .get(&lit.variable())
             .map(|value| {
@@ -95,6 +83,15 @@ impl VariableAssignment {
                 }
             })
             .unwrap_or(AssignedValue::Unknown)
+    }
+
+    pub fn partial(&self) -> Vec<Literal> {
+        self.partial
+            .iter()
+            .filter(|(k, v)| **v != AssignedValue::Unknown)
+            .map(|(k, v)| (k, *v == AssignedValue::False))
+            .map(|(k, v)| Literal::from_index(k.index, v))
+            .collect::<Vec<_>>()
     }
 }
 
@@ -108,13 +105,13 @@ mod tests {
         let lit = Literal::from_dimacs(1);
         let var = lit.variable();
 
-        assert_eq!(AssignedValue::Unknown, assignments.get_value(var));
+        assert_eq!(AssignedValue::Unknown, assignments.value(var));
         assignments.assign_true(lit);
-        assert_eq!(AssignedValue::True, assignments.get_value(var));
+        assert_eq!(AssignedValue::True, assignments.value(var));
         assignments.assign_true(!lit);
-        assert_eq!(AssignedValue::False, assignments.get_value(var));
+        assert_eq!(AssignedValue::False, assignments.value(var));
         assignments.assign_unknown(var);
-        assert_eq!(AssignedValue::Unknown, assignments.get_value(var));
+        assert_eq!(AssignedValue::Unknown, assignments.value(var));
     }
 
     #[test]
@@ -123,23 +120,23 @@ mod tests {
         let a = Literal::from_dimacs(1);
 
         // a = ?
-        assert_eq!(AssignedValue::Unknown, assignments.get_literal_value(a));
-        assert_eq!(AssignedValue::Unknown, assignments.get_literal_value(!a));
+        assert_eq!(AssignedValue::Unknown, assignments.literal_value(a));
+        assert_eq!(AssignedValue::Unknown, assignments.literal_value(!a));
         // a = true
         assignments.assign_true(a);
-        assert_eq!(AssignedValue::True, assignments.get_literal_value(a));
-        assert_eq!(AssignedValue::False, assignments.get_literal_value(!a));
+        assert_eq!(AssignedValue::True, assignments.literal_value(a));
+        assert_eq!(AssignedValue::False, assignments.literal_value(!a));
         // !a = true
         assignments.assign_true(!a);
-        assert_eq!(AssignedValue::False, assignments.get_literal_value(a));
-        assert_eq!(AssignedValue::True, assignments.get_literal_value(!a));
+        assert_eq!(AssignedValue::False, assignments.literal_value(a));
+        assert_eq!(AssignedValue::True, assignments.literal_value(!a));
         // a = false
         assignments.assign_false(a);
-        assert_eq!(AssignedValue::False, assignments.get_literal_value(a));
-        assert_eq!(AssignedValue::True, assignments.get_literal_value(!a));
+        assert_eq!(AssignedValue::False, assignments.literal_value(a));
+        assert_eq!(AssignedValue::True, assignments.literal_value(!a));
         // !a = false
         assignments.assign_false(!a);
-        assert_eq!(AssignedValue::True, assignments.get_literal_value(a));
-        assert_eq!(AssignedValue::False, assignments.get_literal_value(!a));
+        assert_eq!(AssignedValue::True, assignments.literal_value(a));
+        assert_eq!(AssignedValue::False, assignments.literal_value(!a));
     }
 }

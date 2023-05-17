@@ -44,7 +44,7 @@ impl BcpContext {
                 AddedClause::Empty
             }
             [a] => {
-                if self.assignment.get_value(a.variable()) == AssignedValue::False {
+                if self.assignment.literal_value(a) == AssignedValue::False {
                     self.is_unsat = true;
                 }
                 let step = Step {
@@ -84,7 +84,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     let not_literal = !literal;
 
     for &implied_literal in bcp.binary_clauses.get_clauses(!literal) {
-        match bcp.assignment.get_literal_value(implied_literal) {
+        match bcp.assignment.literal_value(implied_literal) {
             // the other literal is true -> already satisfied
             AssignedValue::True => {
                 continue;
@@ -130,14 +130,14 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
         };
 
         // the clause is already satisfied by the other watched literal
-        if bcp.assignment.get_literal_value(watched_literal_2) == AssignedValue::True {
+        if bcp.assignment.literal_value(watched_literal_2) == AssignedValue::True {
             continue;
         }
 
         // search a non-false non-watched literal to replace watched_literal_1
         for i in 2..literals.len() {
             let current_literal = literals[i];
-            match bcp.assignment.get_literal_value(current_literal) {
+            match bcp.assignment.literal_value(current_literal) {
                 AssignedValue::True | AssignedValue::Unknown => {
                     // change the watches
                     removed_watch_indices.push(watch_index);
@@ -153,7 +153,7 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
         }
 
         // did not find a non-false non-watched literal
-        match bcp.assignment.get_literal_value(watched_literal_2) {
+        match bcp.assignment.literal_value(watched_literal_2) {
             // clause became unit, propagate `watched_literal_2`
             AssignedValue::True | AssignedValue::Unknown => {
                 literals[0] = watched_literal_2;

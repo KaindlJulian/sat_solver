@@ -174,7 +174,7 @@ mod test {
         propagate(&mut bcp).unwrap();
 
         assert_eq!(
-            bcp.assignment.get_value(Variable::from_dimacs(1)),
+            bcp.assignment.value(Variable::from_dimacs(1)),
             AssignedValue::False
         );
         assert_eq!(
@@ -184,7 +184,7 @@ mod test {
             Reason::Unit
         );
         assert_eq!(
-            bcp.assignment.get_value(Variable::from_dimacs(4)),
+            bcp.assignment.value(Variable::from_dimacs(4)),
             AssignedValue::False
         );
     }
