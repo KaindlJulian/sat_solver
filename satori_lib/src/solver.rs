@@ -35,6 +35,10 @@ impl Solver {
     pub fn init(&mut self) {
         self.is_init = true;
         self.search.bcp.init();
+        self.search.dlis.init(
+            &self.search.bcp.binary_clauses,
+            &self.search.bcp.long_clauses,
+        )
     }
 
     /// Check satisfiability of the formula

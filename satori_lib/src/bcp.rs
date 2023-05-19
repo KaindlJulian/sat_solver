@@ -7,9 +7,9 @@ use crate::bcp::watch::Watchlists;
 use crate::clause::ClauseIndex;
 use crate::literal::Literal;
 
-mod binary_clauses;
+pub mod binary_clauses;
 pub mod conflict;
-mod long_clauses;
+pub mod long_clauses;
 pub mod trail;
 mod watch;
 
@@ -83,7 +83,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     // look at all clauses containing !literal
     let not_literal = !literal;
 
-    for &implied_literal in bcp.binary_clauses.get_clauses(!literal) {
+    for &implied_literal in bcp.binary_clauses.clauses_with(!literal) {
         match bcp.assignment.literal_value(implied_literal) {
             // the other literal is true -> already satisfied
             AssignedValue::True => {

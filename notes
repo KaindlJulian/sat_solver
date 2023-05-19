@@ -1,5 +1,3 @@
 (page 665) 21.3.5 Implementation Techniques for BCP
 
-https://cse442-17f.github.io/Conflict-Driven-Clause-Learning/
-
-https://jix.one/refactoring-varisat-2-clause-storage-and-unit-propagation/
+add callbacks for updating heuristic data during clause analysis, assignments, and backtracking

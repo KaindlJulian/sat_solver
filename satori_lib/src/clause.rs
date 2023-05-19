@@ -4,9 +4,10 @@ use crate::literal::Literal;
 pub type ClauseIndex = usize;
 
 /// Contains metadata for a clause
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ClauseMeta {
-    deleted: bool,
+    is_deleted: bool,
+    is_resolved: bool,
 }
 
 /// Representation of one long clause (3+ literals) in the propagation datastructure
@@ -19,7 +20,7 @@ pub struct Clause {
 impl Clause {
     pub fn from_lit_vec(literals: Vec<Literal>) -> Clause {
         Clause {
-            header: ClauseMeta { deleted: false },
+            header: ClauseMeta::default(),
             literals: literals.into_boxed_slice(),
         }
     }

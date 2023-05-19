@@ -85,13 +85,17 @@ impl VariableAssignment {
             .unwrap_or(AssignedValue::Unknown)
     }
 
+    /// Returns the literals that are assigned
     pub fn partial(&self) -> Vec<Literal> {
-        self.partial
+        let mut partial = self
+            .partial
             .iter()
-            .filter(|(k, v)| **v != AssignedValue::Unknown)
+            .filter(|(_, v)| **v != AssignedValue::Unknown)
             .map(|(k, v)| (k, *v == AssignedValue::False))
             .map(|(k, v)| Literal::from_index(k.index, v))
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        partial.sort();
+        partial
     }
 }
 
@@ -138,5 +142,26 @@ mod tests {
         assignments.assign_false(!a);
         assert_eq!(AssignedValue::True, assignments.literal_value(a));
         assert_eq!(AssignedValue::False, assignments.literal_value(!a));
+    }
+
+    #[test]
+    fn test_partial() {
+        let mut assignments = VariableAssignment::default();
+
+        assignments.assign_true(Literal::from_dimacs(1));
+        assignments.assign_true(Literal::from_dimacs(-2));
+        assignments.assign_false(Literal::from_dimacs(3));
+        assignments.assign_false(Literal::from_dimacs(-4));
+        assignments.assign_unknown(Literal::from_dimacs(5).variable());
+
+        assert_eq!(
+            assignments.partial(),
+            vec![
+                Literal::from_dimacs(1),
+                Literal::from_dimacs(-2),
+                Literal::from_dimacs(-3),
+                Literal::from_dimacs(4)
+            ]
+        )
     }
 }

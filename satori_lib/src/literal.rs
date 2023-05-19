@@ -51,6 +51,10 @@ impl Literal {
         self.code
     }
 
+    pub fn as_index(&self) -> usize {
+        self.as_code() as usize
+    }
+
     pub fn as_dimacs_integer(&self) -> i32 {
         let index = self.code as i32 >> 1;
         if self.is_positive() {
