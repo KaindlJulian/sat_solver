@@ -92,7 +92,7 @@ impl VariableAssignment {
             .iter()
             .filter(|(_, v)| **v != AssignedValue::Unknown)
             .map(|(k, v)| (k, *v == AssignedValue::False))
-            .map(|(k, v)| Literal::from_index(k.index, v))
+            .map(|(k, v)| Literal::from_index(k.index(), v))
             .collect::<Vec<_>>();
         partial.sort();
         partial

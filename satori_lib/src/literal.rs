@@ -4,7 +4,7 @@ use std::ops::Not;
 /// Variables are represented as numbers starting from 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Variable {
-    pub index: u32,
+    index: u32,
 }
 
 impl Variable {
@@ -16,6 +16,10 @@ impl Variable {
         Variable {
             index: number.abs() as u32 - 1,
         }
+    }
+
+    pub fn index(&self) -> u32 {
+        self.index
     }
 }
 

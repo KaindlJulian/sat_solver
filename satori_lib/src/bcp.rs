@@ -6,6 +6,7 @@ use crate::bcp::trail::{Reason, Step, Trail};
 use crate::bcp::watch::Watchlists;
 use crate::clause::ClauseIndex;
 use crate::literal::Literal;
+use crate::search::heuristic::HeuristicCallbacks;
 
 pub mod binary_clauses;
 pub mod conflict;
@@ -22,7 +23,7 @@ pub enum AddedClause {
 }
 
 /// data for bcp and backtracking
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct BcpContext {
     pub is_unsat: bool,
     pub assignment: VariableAssignment,
@@ -37,7 +38,11 @@ impl BcpContext {
         self.watch.build_watchlists(&self.long_clauses);
     }
 
-    pub fn add_clause(&mut self, literals: &[Literal]) -> AddedClause {
+    pub fn add_clause(
+        &mut self,
+        literals: &[Literal],
+        callbacks: &mut impl HeuristicCallbacks,
+    ) -> AddedClause {
         match *literals {
             [] => {
                 self.is_unsat = true;
@@ -52,7 +57,7 @@ impl BcpContext {
                     decision_level: 0,
                     reason: Reason::Unit,
                 };
-                trail::assign(&mut self.assignment, &mut self.trail, step);
+                trail::assign(&mut self.assignment, &mut self.trail, step, callbacks);
                 AddedClause::Unit(a)
             }
             [a, b] => {
@@ -68,18 +73,26 @@ impl BcpContext {
     }
 }
 
-/// Repeatedly execute BCP until a fixed point is reached
-pub fn propagate(bcp: &mut BcpContext) -> Result<(), Conflict> {
+/// Repeatedly execute BCP until a fixpoint or conflict is reached
+pub fn propagate(
+    bcp: &mut BcpContext,
+    callbacks: &mut impl HeuristicCallbacks,
+) -> Result<(), Conflict> {
     while let Some(literal) = bcp.trail.next_unpropagated_literal() {
-        bcp_binary_clauses(bcp, literal)?;
-        bcp_long_clauses(bcp, literal)?;
+        bcp_binary_clauses(bcp, literal, callbacks)?;
+        bcp_long_clauses(bcp, literal, callbacks)?;
         bcp.trail.increase_propagated();
     }
 
+    // fixpoint
     Ok(())
 }
 
-fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conflict> {
+fn bcp_binary_clauses(
+    bcp: &mut BcpContext,
+    literal: Literal,
+    callbacks: &mut impl HeuristicCallbacks,
+) -> Result<(), Conflict> {
     // look at all clauses containing !literal
     let not_literal = !literal;
 
@@ -100,7 +113,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
                     decision_level: bcp.trail.current_decision_level(),
                     reason: Reason::Binary(not_literal),
                 };
-                trail::assign(&mut bcp.assignment, &mut bcp.trail, step);
+                trail::assign(&mut bcp.assignment, &mut bcp.trail, step, callbacks);
             }
         }
     }
@@ -108,7 +121,11 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     Ok(())
 }
 
-fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conflict> {
+fn bcp_long_clauses(
+    bcp: &mut BcpContext,
+    literal: Literal,
+    callbacks: &mut impl HeuristicCallbacks,
+) -> Result<(), Conflict> {
     let mut result = Ok(());
 
     // we look for clauses containing !literal
@@ -165,7 +182,7 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
                     reason: Reason::Long(watch.clause_index),
                 };
 
-                trail::assign(&mut bcp.assignment, &mut bcp.trail, step);
+                trail::assign(&mut bcp.assignment, &mut bcp.trail, step, callbacks);
             }
             // all literals are false, conflict
             AssignedValue::False => {
@@ -196,13 +213,13 @@ mod tests {
         let cnf = CNF::from_str("-1 2 0\n-2 3 0\n-2 -3 -4 0\n");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
+            bcp.add_clause(c.literals(), &mut ());
         }
 
         bcp.init();
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1), &mut ());
 
-        assert!(propagate(&mut bcp).is_ok());
+        assert!(propagate(&mut bcp, &mut ()).is_ok());
         let assignment = bcp
             .trail
             .steps()
@@ -220,13 +237,13 @@ mod tests {
         let cnf = CNF::from_str("-1 2 0\n-1 3 0\n-2 -3 0\n");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
+            bcp.add_clause(c.literals(), &mut ());
         }
 
         bcp.init();
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1), &mut ());
 
-        match propagate(&mut bcp) {
+        match propagate(&mut bcp, &mut ()) {
             Err(Conflict::BinaryClause(literals)) => {
                 assert_eq!(literals, cnf.clauses()[2].literals());
             }
@@ -240,18 +257,18 @@ mod tests {
         let cnf = CNF::from_str("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0");
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
+            bcp.add_clause(c.literals(), &mut ());
         }
 
         bcp.init();
 
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-9));
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-10));
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-11));
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(12));
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-9), &mut ());
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-10), &mut ());
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-11), &mut ());
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(12), &mut ());
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1), &mut ());
 
-        match propagate(&mut bcp) {
+        match propagate(&mut bcp, &mut ()) {
             Err(Conflict::BinaryClause(literals)) => {
                 // expect conflict with clause c6: [-5, -6]
                 assert_eq!(literals, cnf.clauses()[5].literals());
@@ -267,14 +284,14 @@ mod tests {
             let cnf = CNF::from_str("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
 
             for c in cnf.clauses().iter() {
-                bcp.add_clause(c.literals());
+                bcp.add_clause(c.literals(), &mut ());
             }
 
             bcp.init();
 
-            trail::decide_and_assign(&mut bcp, Literal::from_dimacs(test_lit));
+            trail::decide_and_assign(&mut bcp, Literal::from_dimacs(test_lit), &mut ());
 
-            match propagate(&mut bcp) {
+            match propagate(&mut bcp, &mut ()) {
                 Ok(_) => {
                     println!("OK");
                 }

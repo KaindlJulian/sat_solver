@@ -2,6 +2,7 @@ use crate::assignment::VariableAssignment;
 use crate::bcp::BcpContext;
 use crate::clause::ClauseIndex;
 use crate::literal::{Literal, Variable};
+use crate::search::heuristic::HeuristicCallbacks;
 use std::collections::HashMap;
 
 pub type StepIndex = usize;
@@ -30,12 +31,14 @@ impl Reason {
     }
 }
 
+#[derive(Debug)]
 pub struct Step {
     pub assigned_literal: Literal,
     pub decision_level: u32,
     pub reason: Reason,
 }
 
+#[derive(Debug)]
 pub struct Trail {
     steps: Vec<Step>,
     step_index_by_var: HashMap<Variable, StepIndex>,
@@ -91,27 +94,32 @@ impl Trail {
 }
 
 /// adds given step to the trail, assigning the literal
-pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step) {
+pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step, callbacks: &mut impl HeuristicCallbacks) {
     trail
         .step_index_by_var
         .insert(step.assigned_literal.variable(), trail.steps.len());
+    callbacks.assign(step.assigned_literal.variable());
     values.assign_true(step.assigned_literal);
     trail.steps.push(step);
 }
 
 /// adds a solver decision to the trail, assigning the literal
-pub fn decide_and_assign(bcp: &mut BcpContext, literal: Literal) {
+pub fn decide_and_assign(bcp: &mut BcpContext, literal: Literal, callbacks: &mut impl HeuristicCallbacks) {
     bcp.trail.decisions.push(bcp.trail.steps.len() as u32);
     let step = Step {
         assigned_literal: literal,
         decision_level: bcp.trail.current_decision_level(),
         reason: Reason::SolverDecision,
     };
-    assign(&mut bcp.assignment, &mut bcp.trail, step);
+    assign(&mut bcp.assignment, &mut bcp.trail, step, callbacks);
 }
 
 /// backtracks to given decision level, undoing assignments of a higher level
-pub fn backtrack(bcp: &mut BcpContext, decision_level: u32) {
+pub fn backtrack(
+    bcp: &mut BcpContext,
+    decision_level: u32,
+    callbacks: &mut impl HeuristicCallbacks,
+) {
     // backtrack target must be lower than current decision level
     assert!(decision_level < bcp.trail.current_decision_level());
 
@@ -121,8 +129,9 @@ pub fn backtrack(bcp: &mut BcpContext, decision_level: u32) {
 
     // Undo the assignments
     for step in bcp.trail.steps.drain(target_trail_len..) {
-        bcp.assignment
-            .assign_unknown(step.assigned_literal.variable());
+        let variable = step.assigned_literal.variable();
+        callbacks.unassign(variable);
+        bcp.assignment.assign_unknown(variable);
     }
 
     // remove from graph

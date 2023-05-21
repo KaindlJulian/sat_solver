@@ -3,7 +3,7 @@ use crate::literal::Literal;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct BinaryClauses {
     /// maps a literal to the other literals it forms a binary clause with for fast lookup
     literal_lookup: HashMap<Literal, Vec<Literal>>,

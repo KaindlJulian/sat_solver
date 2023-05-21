@@ -5,35 +5,38 @@ use crate::bcp::{trail, AddedClause, BcpContext};
 use crate::literal::Literal;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use crate::search::heuristic::HeuristicCallbacks;
 
-/// Temporary data for analyzing conflicts
-#[derive(Default)]
+/// Temporary data during conflict analysis
+#[derive(Default, Debug)]
 pub struct ConflictAnalysis {
     conflicting_assignment: HashMap<StepIndex, AssignedValue>,
 
     /// The derived clause, 1-UIP
-    uip: Vec<Literal>,
+    derived_clause: Vec<Literal>,
 
     current_level_lit_count: usize,
 }
 
-pub fn analyze(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut BcpContext) {
+/// analyzes a  conflict
+pub fn analyze(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut BcpContext, callbacks: &mut impl HeuristicCallbacks) {
     assert_ne!(
         bcp.trail.current_decision_level(),
         trail::TOP_DECISION_LEVEL
     );
 
+    // derive the first UIP
     derive_1_uip(conflict, analysis, bcp);
 
     let target_decision_level = prepare_for_backtracking(analysis, bcp);
 
-    trail::backtrack(bcp, target_decision_level);
-    learn_and_assign(analysis, bcp);
+    trail::backtrack(bcp, target_decision_level, callbacks);
+    learn_and_assign(analysis, bcp, callbacks);
 }
 
 /// derives the first unique implication point clause from given implication graph and conflict
 pub fn derive_1_uip(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut BcpContext) {
-    analysis.uip.clear();
+    analysis.derived_clause.clear();
 
     for &literal in conflict.get_literals(bcp) {
         add_literal(analysis, &bcp.trail, literal)
@@ -58,13 +61,13 @@ pub fn derive_1_uip(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &m
         analysis.current_level_lit_count -= 1;
 
         if analysis.current_level_lit_count == 0 {
-            for &literal in &analysis.uip {
+            for &literal in &analysis.derived_clause {
                 let step_index = bcp.trail.step_index(literal.variable());
                 analysis
                     .conflicting_assignment
                     .insert(step_index, AssignedValue::False);
             }
-            analysis.uip.push(!step.assigned_literal);
+            analysis.derived_clause.push(!step.assigned_literal);
             break;
         } else {
             for &asserting_literal in step.reason.get_false_literals(bcp) {
@@ -85,7 +88,15 @@ fn add_literal(conflict: &mut ConflictAnalysis, trail: &Trail, literal: Literal)
         return;
     }
 
+
+    let was_added = conflict.conflicting_assignment.get(&step_index).map(|v| *v == AssignedValue::True).unwrap_or(false);
+    conflict.conflicting_assignment.insert(step_index, AssignedValue::True);
+
     // If the literal is already added, don't add it a second time.
+    if was_added {
+        return;
+    }
+    /*
     if conflict
         .conflicting_assignment
         .get(&step_index)
@@ -93,7 +104,7 @@ fn add_literal(conflict: &mut ConflictAnalysis, trail: &Trail, literal: Literal)
         .unwrap_or(false)
     {
         return;
-    }
+    }*/
 
     if lit_decision_level == trail.current_decision_level() {
         // If the literal is assigned at the current decision level, we may want
@@ -102,22 +113,22 @@ fn add_literal(conflict: &mut ConflictAnalysis, trail: &Trail, literal: Literal)
     } else {
         // If the literal is assigned at a non-zero decision level, we will not
         // resolve on it so it will be part of the derived clause.
-        conflict.uip.push(literal);
+        conflict.derived_clause.push(literal);
     }
 }
 
 fn prepare_for_backtracking(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext) -> u32 {
-    let uip_len = conflict.uip.len();
-    conflict.uip.swap(0, uip_len - 1);
+    let uip_len = conflict.derived_clause.len();
+    conflict.derived_clause.swap(0, uip_len - 1);
     let mut backtrack_level = trail::TOP_DECISION_LEVEL;
 
     if uip_len > 1 {
-        let mut max_step_index = bcp.trail.step_index(conflict.uip[1].variable());
+        let mut max_step_index = bcp.trail.step_index(conflict.derived_clause[1].variable());
         for i in 2..uip_len {
-            let trail_index = bcp.trail.step_index(conflict.uip[i].variable());
+            let trail_index = bcp.trail.step_index(conflict.derived_clause[i].variable());
             if trail_index > max_step_index {
                 max_step_index = trail_index;
-                conflict.uip.swap(1, i);
+                conflict.derived_clause.swap(1, i);
             }
         }
 
@@ -128,8 +139,8 @@ fn prepare_for_backtracking(conflict: &mut ConflictAnalysis, bcp: &mut BcpContex
 }
 
 /// adds the asserting clause to the formula and assigns the newly asserted literal
-fn learn_and_assign(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext) {
-    let reason = match bcp.add_clause(&conflict.uip) {
+fn learn_and_assign(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext, callbacks: &mut impl HeuristicCallbacks) {
+    let reason = match bcp.add_clause(&conflict.derived_clause, callbacks) {
         AddedClause::Binary([_, b]) => Some(Reason::Binary(b)),
         AddedClause::Long(clause_index) => Some(Reason::Long(clause_index)),
         _ => None, //TODO maybe panic here
@@ -137,12 +148,12 @@ fn learn_and_assign(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext) {
 
     if let Some(reason) = reason {
         let step = Step {
-            assigned_literal: conflict.uip[0],
+            assigned_literal: conflict.derived_clause[0],
             decision_level: bcp.trail.current_decision_level(),
             reason,
         };
 
-        trail::assign(&mut bcp.assignment, &mut bcp.trail, step)
+        trail::assign(&mut bcp.assignment, &mut bcp.trail, step, callbacks)
     }
 }
 
@@ -160,18 +171,18 @@ mod test {
         let mut analysis = ConflictAnalysis::default();
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
+            bcp.add_clause(c.literals(), &mut ());
         }
 
         bcp.init();
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(4));
+        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(4), &mut ());
 
-        let conflict = propagate(&mut bcp).unwrap_err();
-        analyze(conflict, &mut analysis, &mut bcp);
+        let conflict = propagate(&mut bcp, &mut ()).unwrap_err();
+        analyze(conflict, &mut analysis, &mut bcp, &mut ());
 
-        assert_eq!(analysis.uip, vec![Literal::from_dimacs(-1)]);
+        assert_eq!(analysis.derived_clause, vec![Literal::from_dimacs(-1)]);
 
-        propagate(&mut bcp).unwrap();
+        propagate(&mut bcp, &mut ()).unwrap();
 
         assert_eq!(
             bcp.assignment.value(Variable::from_dimacs(1)),

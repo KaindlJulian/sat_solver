@@ -3,7 +3,7 @@ use crate::cnf::CNF;
 use crate::literal::Literal;
 use crate::search::{search, SearchContext};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Solver {
     is_init: bool,
     search: SearchContext,
@@ -29,7 +29,7 @@ impl Solver {
         if self.is_init {
             panic!("must be uninitialized to add clauses");
         }
-        self.search.bcp.add_clause(clause);
+        self.search.bcp.add_clause(clause, &mut self.search.dlis);
     }
 
     pub fn init(&mut self) {
@@ -46,6 +46,7 @@ impl Solver {
         if !self.is_init {
             self.init();
         }
+
         loop {
             if let Some(result) = search(&mut self.search) {
                 return result;
@@ -65,5 +66,19 @@ impl Solver {
             AssignedValue::False => Some(false),
             AssignedValue::Unknown => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_formulas() {
+        dbg!("a");
+        let mut solver = Solver::from_cnf(CNF::from_file_str("../test_formulas/sat5.in"));
+        solver.init();
+        let sat = solver.solve();
+        assert!(sat);
     }
 }

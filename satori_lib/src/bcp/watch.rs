@@ -12,7 +12,7 @@ pub struct LiteralWatch {
 
 /// For every literal, keeps a list of clauses watched by this literal
 /// The watched literals will always be the first two, at index 0 and 1
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Watchlists {
     watches: HashMap<Literal, Vec<LiteralWatch>>,
 }

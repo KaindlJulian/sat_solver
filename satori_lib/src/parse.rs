@@ -12,7 +12,14 @@ fn parse_clause(input: &str) -> IResult<&str, Vec<i32>> {
 
 pub fn parse_dimacs_cnf(input: &str) -> IResult<&str, Vec<Vec<i32>>> {
     // header is optional
-    let (input, _) = many0(pair(pair(tag("p cnf "), take_until("\n")), tag("\n")))(input)?;
+    let (input, _) = many0(pair(tag("p cnf "), take_until("\n")))(input)?;
+    let (input, _) = many0(tag("\n"))(input)?;
+
+    // empty formula
+    if input.is_empty() {
+        return Ok((input, vec![]));
+    }
+
     let (input, clauses) = separated_list1(pair(tag(" 0"), line_ending), parse_clause)(input)?;
     Ok((input, clauses))
 }

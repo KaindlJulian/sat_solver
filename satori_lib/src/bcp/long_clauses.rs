@@ -1,7 +1,7 @@
 use crate::clause::{Clause, ClauseIndex};
 use crate::literal::Literal;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct LongClauses {
     clauses: Vec<Clause>,
 }

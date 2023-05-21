@@ -25,6 +25,10 @@ impl CNF {
         CNF::from_str(std::fs::read_to_string(file).expect("fs error").as_str())
     }
 
+    pub fn from_file_str(file: &str) -> CNF {
+        CNF::from_file(PathBuf::from(file))
+    }
+
     /// Creates a cnf formula from literals
     pub fn from_clauses(clauses: &Vec<Vec<i32>>) -> CNF {
         let max_var = clauses
@@ -90,7 +94,7 @@ mod tests {
         assert_eq!(10, cnf.variables.len());
         assert_eq!(
             (0..10).collect::<Vec<_>>(),
-            cnf.variables.iter().map(|v| v.index).collect::<Vec<_>>()
+            cnf.variables.iter().map(|v| v.index()).collect::<Vec<_>>()
         );
     }
 }
