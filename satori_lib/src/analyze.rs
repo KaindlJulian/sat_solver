@@ -58,7 +58,9 @@ pub fn derive_1_uip(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &m
 
         let step = &bcp.trail.steps()[step_index];
 
-        analysis.current_level_lit_count -= 1;
+        if analysis.current_level_lit_count > 0 {
+            analysis.current_level_lit_count -= 1;
+        }
 
         if analysis.current_level_lit_count == 0 {
             for &literal in &analysis.derived_clause {
@@ -91,20 +93,10 @@ fn add_literal(conflict: &mut ConflictAnalysis, trail: &Trail, literal: Literal)
 
     let was_added = conflict.conflicting_assignment.get(&step_index).map(|v| *v == AssignedValue::True).unwrap_or(false);
     conflict.conflicting_assignment.insert(step_index, AssignedValue::True);
-
     // If the literal is already added, don't add it a second time.
     if was_added {
         return;
     }
-    /*
-    if conflict
-        .conflicting_assignment
-        .get(&step_index)
-        .map(|v| *v == AssignedValue::True)
-        .unwrap_or(false)
-    {
-        return;
-    }*/
 
     if lit_decision_level == trail.current_decision_level() {
         // If the literal is assigned at the current decision level, we may want

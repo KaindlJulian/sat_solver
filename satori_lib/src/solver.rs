@@ -75,7 +75,6 @@ mod tests {
 
     #[test]
     fn test_formulas() {
-        dbg!("a");
         let mut solver = Solver::from_cnf(CNF::from_file_str("../test_formulas/sat5.in"));
         solver.init();
         let sat = solver.solve();
