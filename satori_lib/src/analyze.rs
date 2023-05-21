@@ -3,13 +3,11 @@ use crate::bcp::trail::{Reason, Step, StepIndex, Trail};
 use crate::bcp::{trail, AddedClause, BcpContext};
 use crate::literal::Literal;
 use crate::search::heuristic::HeuristicCallbacks;
-use crate::util::vec_map::VecMap;
 
 /// Temporary data during conflict analysis
 #[derive(Default, Debug)]
 pub struct ConflictAnalysis {
     /// maps a step index to true if the literal is in the current clause
-    conflict_literals2: VecMap<StepIndex, bool>,
     conflict_literals: Vec<bool>,
 
     /// The derived clause, 1-UIP
