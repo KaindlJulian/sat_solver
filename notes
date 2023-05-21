@@ -1,3 +1,0 @@
-(page 665) 21.3.5 Implementation Techniques for BCP
-
-add callbacks for updating heuristic data during clause analysis, assignments, and backtracking

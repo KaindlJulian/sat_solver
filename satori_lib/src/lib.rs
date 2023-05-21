@@ -1,5 +1,3 @@
-extern crate core;
-
 mod analyze;
 mod assignment;
 mod bcp;

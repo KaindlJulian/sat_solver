@@ -5,7 +5,6 @@ use crate::literal::{Literal, Variable};
 use crate::search::heuristic::HeuristicCallbacks;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::mem::transmute;
 
 #[derive(Default, Debug)]
 struct DlisEntry {
@@ -60,7 +59,7 @@ impl HeuristicCallbacks for DLIS {
 impl DLIS {
     /// Returns the optimal next decision literal according to DLIS or `None` if no variables are unassigned
     pub fn decide(&self) -> Option<Literal> {
-        let mut unassigned_vars = self
+        let unassigned_vars = self
             .data
             .iter()
             .filter(|(_, v)| !v.is_assigned)
@@ -70,10 +69,14 @@ impl DLIS {
             return None;
         }
 
-        unassigned_vars.sort_by(|a, b| b.1.clause_count.cmp(&a.1.clause_count));
-
-        let x = unassigned_vars.iter().find(|x| x.0.is_positive());
-        let y = unassigned_vars.iter().find(|y| y.0.is_negative());
+        let x = unassigned_vars
+            .iter()
+            .filter(|x| x.0.is_positive())
+            .max_by_key(|x| x.1.clause_count);
+        let y = unassigned_vars
+            .iter()
+            .filter(|y| y.0.is_negative())
+            .max_by_key(|y| y.1.clause_count);
 
         match (x, y) {
             (Some(x), Some(y)) => match x.1.clause_count.cmp(&y.1.clause_count) {

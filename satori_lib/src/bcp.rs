@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_exercise_5_conflict() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0");
+        let cnf = CNF::from_str("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0\n");
 
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals(), &mut ());

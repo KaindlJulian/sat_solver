@@ -1,5 +1,5 @@
 use crate::clause::Clause;
-use crate::literal::{Literal, Variable};
+use crate::literal::Variable;
 
 /// Callbacks to update heuristic data during propagation and conflict analysis
 pub trait HeuristicCallbacks {

@@ -22,7 +22,8 @@ pub enum Reason {
 }
 
 impl Reason {
-    pub fn get_false_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
+    /// Returns the falsified literals that cause the propagation
+    pub fn get_falsified_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
         match self {
             Reason::SolverDecision | Reason::Unit => &[],
             Reason::Binary(literal) => std::slice::from_ref(literal),
@@ -94,7 +95,12 @@ impl Trail {
 }
 
 /// adds given step to the trail, assigning the literal
-pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step, callbacks: &mut impl HeuristicCallbacks) {
+pub fn assign(
+    values: &mut VariableAssignment,
+    trail: &mut Trail,
+    step: Step,
+    callbacks: &mut impl HeuristicCallbacks,
+) {
     trail
         .step_index_by_var
         .insert(step.assigned_literal.variable(), trail.steps.len());
@@ -104,7 +110,11 @@ pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step, ca
 }
 
 /// adds a solver decision to the trail, assigning the literal
-pub fn decide_and_assign(bcp: &mut BcpContext, literal: Literal, callbacks: &mut impl HeuristicCallbacks) {
+pub fn decide_and_assign(
+    bcp: &mut BcpContext,
+    literal: Literal,
+    callbacks: &mut impl HeuristicCallbacks,
+) {
     bcp.trail.decisions.push(bcp.trail.steps.len() as u32);
     let step = Step {
         assigned_literal: literal,

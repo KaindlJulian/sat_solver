@@ -72,12 +72,25 @@ impl Solver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::PathBuf;
 
     #[test]
-    fn test_formulas() {
-        let mut solver = Solver::from_cnf(CNF::from_file_str("../test_formulas/sat5.in"));
-        solver.init();
+    fn test_formula() {
+        let file = "../test_formulas/add4.unsat";
+        let mut solver = Solver::from_cnf(CNF::from_file_str(file));
         let sat = solver.solve();
-        assert!(sat);
+        assert_eq!(sat, file.contains(".sat"));
+    }
+
+    #[test]
+    fn test_all_formulas() {
+        for entry in fs::read_dir(PathBuf::from("../test_formulas")).unwrap() {
+            let file = entry.unwrap();
+            dbg!(file.file_name());
+            let mut solver = Solver::from_cnf(CNF::from_file(file.path()));
+            let sat = solver.solve();
+            assert_eq!(sat, file.file_name().to_str().unwrap().contains(".sat"));
+        }
     }
 }

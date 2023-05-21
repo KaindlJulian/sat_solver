@@ -28,15 +28,20 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
                 ctx.bcp.is_unsat = true;
                 return Some(false);
             }
-            // or we learn an asserting clause, and backtrack
             dbg!(&conflict);
-            analyze(conflict, &mut ctx.conflict_analysis, &mut ctx.bcp, &mut ctx.dlis);
+            // or we learn an asserting clause, and backtrack
+            analyze(
+                conflict,
+                &mut ctx.conflict_analysis,
+                &mut ctx.bcp,
+                &mut ctx.dlis,
+            );
         }
         Ok(_) => {
             if let Some(literal) = ctx.dlis.decide() {
+                dbg!(&literal);
                 // no conflict but not all variables are assigned -> heuristic decision
                 trail::decide_and_assign(&mut ctx.bcp, literal, &mut ctx.dlis);
-                dbg!(literal);
             } else {
                 // no conflict and all variables assigned -> SAT
                 return Some(true);
