@@ -1,6 +1,6 @@
 use crate::analyze::{analyze, ConflictAnalysis};
 use crate::bcp::{propagate, trail, BcpContext};
-use crate::search::dlis::Dlis;
+use crate::search::dlis::{decide, Dlis};
 
 mod dlis;
 pub mod heuristic;
@@ -19,7 +19,7 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
         return Some(false);
     }
 
-    let bcp_result = propagate(&mut ctx.bcp, &mut ctx.dlis);
+    let bcp_result = propagate(&mut ctx.bcp);
 
     match bcp_result {
         Err(conflict) => {
@@ -28,20 +28,13 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
                 ctx.bcp.is_unsat = true;
                 return Some(false);
             }
-            dbg!(&conflict);
             // or we learn an asserting clause, and backtrack
-            analyze(
-                conflict,
-                &mut ctx.conflict_analysis,
-                &mut ctx.bcp,
-                &mut ctx.dlis,
-            );
+            analyze(conflict, &mut ctx.conflict_analysis, &mut ctx.bcp);
         }
         Ok(_) => {
-            if let Some(literal) = ctx.dlis.decide() {
-                dbg!(&literal);
+            if let Some(literal) = decide(&ctx.dlis, &ctx.bcp.assignment) {
                 // no conflict but not all variables are assigned -> heuristic decision
-                trail::decide_and_assign(&mut ctx.bcp, literal, &mut ctx.dlis);
+                trail::decide_and_assign(&mut ctx.bcp, literal);
             } else {
                 // no conflict and all variables assigned -> SAT
                 return Some(true);

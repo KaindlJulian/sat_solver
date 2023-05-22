@@ -72,6 +72,14 @@ impl VariableAssignment {
         partial.sort();
         partial
     }
+
+    /// Returns true if a variable is assigned
+    pub fn is_assigned(&self, variable: Variable) -> bool {
+        self.partial
+            .get(&variable)
+            .map(|a| a != &AssignedValue::Unknown)
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
