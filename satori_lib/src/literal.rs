@@ -36,6 +36,10 @@ pub struct Literal {
 }
 
 impl Literal {
+    pub fn from_code(code: u32) -> Literal {
+        Literal { code }
+    }
+
     // create literal from a 0-based index
     pub fn from_index(index: u32, negative: bool) -> Literal {
         Literal {
@@ -48,6 +52,7 @@ impl Literal {
     }
 
     pub fn from_dimacs(value: i32) -> Literal {
+        assert_ne!(value, 0);
         Literal::from_index((value.abs() - 1) as u32, value < 0)
     }
 

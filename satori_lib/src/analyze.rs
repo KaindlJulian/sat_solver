@@ -2,7 +2,6 @@ use crate::bcp::conflict::Conflict;
 use crate::bcp::trail::{Reason, Step, Trail};
 use crate::bcp::{trail, AddedClause, BcpContext};
 use crate::literal::Literal;
-use crate::search::heuristic::HeuristicCallbacks;
 
 /// Temporary data during conflict analysis
 #[derive(Default, Debug)]
@@ -17,12 +16,7 @@ pub struct ConflictAnalysis {
 }
 
 /// analyzes a  conflict
-pub fn analyze(
-    conflict: Conflict,
-    analysis: &mut ConflictAnalysis,
-    bcp: &mut BcpContext,
-    callbacks: &mut impl HeuristicCallbacks,
-) {
+pub fn analyze(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut BcpContext) {
     assert_ne!(
         bcp.trail.current_decision_level(),
         trail::TOP_DECISION_LEVEL
@@ -39,8 +33,8 @@ pub fn analyze(
 
     let target_decision_level = prepare_for_backtracking(analysis, bcp);
 
-    trail::backtrack(bcp, target_decision_level, callbacks);
-    learn_and_assign(analysis, bcp, callbacks);
+    trail::backtrack(bcp, target_decision_level);
+    learn_and_assign(analysis, bcp);
 }
 
 /// derives the first unique implication point clause from given implication graph and conflict
@@ -127,15 +121,11 @@ fn prepare_for_backtracking(conflict: &mut ConflictAnalysis, bcp: &mut BcpContex
 }
 
 /// adds the asserting clause to the formula and assigns the newly asserted literal
-fn learn_and_assign(
-    conflict: &mut ConflictAnalysis,
-    bcp: &mut BcpContext,
-    callbacks: &mut impl HeuristicCallbacks,
-) {
-    let reason = match bcp.add_clause(&conflict.derived_clause, callbacks) {
+fn learn_and_assign(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext) {
+    let reason = match bcp.add_clause(&conflict.derived_clause) {
         AddedClause::Binary([_, b]) => Some(Reason::Binary(b)),
         AddedClause::Long(clause_index) => Some(Reason::Long(clause_index)),
-        _ => None, //TODO maybe panic here
+        _ => None,
     };
 
     if let Some(reason) = reason {
@@ -145,7 +135,7 @@ fn learn_and_assign(
             reason,
         };
 
-        trail::assign(&mut bcp.assignment, &mut bcp.trail, step, callbacks)
+        trail::assign(&mut bcp.assignment, &mut bcp.trail, step)
     }
 }
 
@@ -153,6 +143,7 @@ fn learn_and_assign(
 mod test {
     use super::*;
     use crate::assignment::AssignedValue;
+    use crate::bcp::trail::decide_and_assign;
     use crate::bcp::{propagate, BcpContext};
     use crate::cnf::CNF;
     use crate::literal::Variable;
@@ -164,18 +155,18 @@ mod test {
         let mut analysis = ConflictAnalysis::default();
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals(), &mut ());
+            bcp.add_clause(c.literals());
         }
 
         bcp.init();
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(4), &mut ());
+        decide_and_assign(&mut bcp, Literal::from_dimacs(4));
 
-        let conflict = propagate(&mut bcp, &mut ()).unwrap_err();
-        analyze(conflict, &mut analysis, &mut bcp, &mut ());
+        let conflict = propagate(&mut bcp).unwrap_err();
+        analyze(conflict, &mut analysis, &mut bcp);
 
         assert_eq!(analysis.derived_clause, vec![Literal::from_dimacs(-1)]);
 
-        propagate(&mut bcp, &mut ()).unwrap();
+        propagate(&mut bcp).unwrap();
 
         assert_eq!(
             bcp.assignment.value(Variable::from_dimacs(1)),
@@ -200,23 +191,22 @@ mod test {
         let mut analysis = ConflictAnalysis::default();
 
         for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals(), &mut ());
+            bcp.add_clause(c.literals());
         }
 
         bcp.init();
 
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1), &mut ());
+        decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
-        propagate(&mut bcp, &mut ()).unwrap();
+        propagate(&mut bcp).unwrap();
 
-        trail::decide_and_assign(&mut bcp, Literal::from_dimacs(6), &mut ());
+        decide_and_assign(&mut bcp, Literal::from_dimacs(6));
 
-        let conflict = propagate(&mut bcp, &mut ()).unwrap_err();
+        let conflict = propagate(&mut bcp).unwrap_err();
 
-        analyze(conflict, &mut analysis, &mut bcp, &mut ());
-        dbg!(&bcp);
+        analyze(conflict, &mut analysis, &mut bcp);
 
-        propagate(&mut bcp, &mut ()).unwrap();
+        propagate(&mut bcp).unwrap();
 
         assert_eq!(
             bcp.assignment.literal_value(Literal::from_dimacs(-7)),
@@ -244,6 +234,52 @@ mod test {
         } else {
             panic!("expected a long clause")
         }
+        assert_eq!(
+            bcp.assignment.literal_value(Literal::from_dimacs(-6)),
+            AssignedValue::True
+        );
+    }
+
+    #[test]
+    fn binary_clause() {
+        let mut bcp = BcpContext::default();
+        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
+        let mut analysis = ConflictAnalysis::default();
+
+        for c in cnf.clauses().iter() {
+            bcp.add_clause(c.literals());
+        }
+
+        bcp.init();
+
+        decide_and_assign(&mut bcp, Literal::from_dimacs(1));
+
+        propagate(&mut bcp).unwrap();
+
+        decide_and_assign(&mut bcp, Literal::from_dimacs(6));
+
+        let conflict = propagate(&mut bcp).unwrap_err();
+
+        analyze(conflict, &mut analysis, &mut bcp);
+
+        propagate(&mut bcp).unwrap();
+
+        assert_eq!(
+            bcp.assignment.literal_value(Literal::from_dimacs(-7)),
+            AssignedValue::True
+        );
+        assert_eq!(
+            bcp.trail
+                .get_step_for_variable(Variable::from_dimacs(7))
+                .reason,
+            Reason::Binary(Literal::from_dimacs(-2))
+        );
+
+        analysis.derived_clause.sort_unstable(); // not used below, we can clobber it
+        assert_eq!(
+            analysis.derived_clause,
+            vec![Literal::from_dimacs(-2), Literal::from_dimacs(-7)]
+        );
         assert_eq!(
             bcp.assignment.literal_value(Literal::from_dimacs(-6)),
             AssignedValue::True
