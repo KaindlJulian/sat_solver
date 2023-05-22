@@ -15,14 +15,14 @@ impl CNF {
     }
 
     /// Creates a cnf formula from a string in dimacs cnf format
-    pub fn from_str(input: &str) -> CNF {
+    pub fn from_dimacs(input: &str) -> CNF {
         let clauses = parse_dimacs_cnf(input).expect("parsing error").1;
         CNF::from_clauses(&clauses)
     }
 
     /// Creates a cnf formula from a file in dimacs cnf format
     pub fn from_file(file: PathBuf) -> CNF {
-        CNF::from_str(std::fs::read_to_string(file).expect("fs error").as_str())
+        CNF::from_dimacs(std::fs::read_to_string(file).expect("fs error").as_str())
     }
 
     pub fn from_file_str(file: &str) -> CNF {
@@ -30,7 +30,7 @@ impl CNF {
     }
 
     /// Creates a cnf formula from literals
-    pub fn from_clauses(clauses: &Vec<Vec<i32>>) -> CNF {
+    pub fn from_clauses(clauses: &[Vec<i32>]) -> CNF {
         let max_var = clauses
             .iter()
             .flat_map(|c| c.iter())
@@ -50,7 +50,7 @@ impl CNF {
                 })
                 .collect(),
             variables: (0..max_var)
-                .map(|i| Variable::from_index(i))
+                .map(Variable::from_index)
                 .collect::<Vec<Variable>>(),
         }
     }

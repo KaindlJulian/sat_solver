@@ -22,11 +22,11 @@ struct DlisEntry {
 ///  - select two variables x and y that maximize these two metrics from all the variables
 ///  - if C+(x) > C-(y) set x to true, else set y to false
 #[derive(Default, Debug)]
-pub struct DLIS {
+pub struct Dlis {
     data: HashMap<Literal, DlisEntry>,
 }
 
-impl HeuristicCallbacks for DLIS {
+impl HeuristicCallbacks for Dlis {
     fn assign(&mut self, variable: Variable) {
         // the map stores both literals individually
         for assignment in [true, false].iter() {
@@ -56,7 +56,7 @@ impl HeuristicCallbacks for DLIS {
     }
 }
 
-impl DLIS {
+impl Dlis {
     /// Returns the optimal next decision literal according to DLIS or `None` if no variables are unassigned
     pub fn decide(&self) -> Option<Literal> {
         let unassigned_vars = self
@@ -119,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_literal_is_positive() {
-        let mut dlis = DLIS::default();
+        let mut dlis = Dlis::default();
         dlis.data.insert(
             Literal::from_dimacs(1),
             DlisEntry {
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_literal_is_negative() {
-        let mut dlis = DLIS::default();
+        let mut dlis = Dlis::default();
         dlis.data.insert(
             Literal::from_dimacs(1),
             DlisEntry {
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_no_literals_left() {
-        let mut dlis = DLIS::default();
+        let mut dlis = Dlis::default();
         dlis.data.insert(
             Literal::from_dimacs(1),
             DlisEntry {

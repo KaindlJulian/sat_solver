@@ -1,6 +1,6 @@
 use crate::analyze::{analyze, ConflictAnalysis};
 use crate::bcp::{propagate, trail, BcpContext};
-use crate::search::dlis::DLIS;
+use crate::search::dlis::Dlis;
 
 mod dlis;
 pub mod heuristic;
@@ -10,7 +10,7 @@ pub mod heuristic;
 pub struct SearchContext {
     pub bcp: BcpContext,
     pub conflict_analysis: ConflictAnalysis,
-    pub dlis: DLIS,
+    pub dlis: Dlis,
 }
 
 /// Perform one step of the CDCL algorithm

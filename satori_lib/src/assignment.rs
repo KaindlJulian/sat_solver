@@ -40,49 +40,24 @@ impl VariableAssignment {
         );
     }
 
-    pub fn assign_false(&mut self, lit: Literal) {
-        self.partial.insert(
-            lit.variable(),
-            if lit.is_negative() {
-                AssignedValue::True
-            } else {
-                AssignedValue::False
-            },
-        );
-    }
-
     pub fn assign_unknown(&mut self, var: Variable) {
         self.partial.insert(var, AssignedValue::Unknown);
-    }
-
-    pub fn is_assigned(&self, var: Variable) -> bool {
-        self.partial
-            .get(&var)
-            .map(|a| match a {
-                AssignedValue::True | AssignedValue::False => true,
-                AssignedValue::Unknown => false,
-            })
-            .unwrap_or(false)
     }
 
     pub fn value(&self, var: Variable) -> AssignedValue {
         self.partial
             .get(&var)
-            .map(|v| *v)
+            .copied()
             .unwrap_or(AssignedValue::Unknown)
     }
 
     pub fn literal_value(&self, lit: Literal) -> AssignedValue {
-        self.partial
-            .get(&lit.variable())
-            .map(|value| {
-                if lit.is_positive() {
-                    *value
-                } else {
-                    value.not()
-                }
-            })
-            .unwrap_or(AssignedValue::Unknown)
+        let variable_value = self.value(lit.variable());
+        if lit.is_positive() {
+            variable_value
+        } else {
+            !variable_value
+        }
     }
 
     /// Returns the literals that are assigned
@@ -134,14 +109,6 @@ mod tests {
         assignments.assign_true(!a);
         assert_eq!(AssignedValue::False, assignments.literal_value(a));
         assert_eq!(AssignedValue::True, assignments.literal_value(!a));
-        // a = false
-        assignments.assign_false(a);
-        assert_eq!(AssignedValue::False, assignments.literal_value(a));
-        assert_eq!(AssignedValue::True, assignments.literal_value(!a));
-        // !a = false
-        assignments.assign_false(!a);
-        assert_eq!(AssignedValue::True, assignments.literal_value(a));
-        assert_eq!(AssignedValue::False, assignments.literal_value(!a));
     }
 
     #[test]
@@ -150,8 +117,6 @@ mod tests {
 
         assignments.assign_true(Literal::from_dimacs(1));
         assignments.assign_true(Literal::from_dimacs(-2));
-        assignments.assign_false(Literal::from_dimacs(3));
-        assignments.assign_false(Literal::from_dimacs(-4));
         assignments.assign_unknown(Literal::from_dimacs(5).variable());
 
         assert_eq!(

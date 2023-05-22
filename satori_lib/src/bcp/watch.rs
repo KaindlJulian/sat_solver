@@ -18,17 +18,11 @@ pub struct Watchlists {
 }
 
 impl Watchlists {
-    /// create new watches for a clause
-    pub fn watch_clause(&mut self, clause_index: ClauseIndex, lits: [Literal; 2]) {
-        for i in 0..2 {
+    /// create new watches for a clause and add them
+    pub fn watch_clause(&mut self, clause_index: ClauseIndex, literals: [Literal; 2]) {
+        for lit in literals {
             let watch = LiteralWatch { clause_index };
-
-            match self.watches.entry(lits[i]) {
-                Entry::Occupied(mut e) => e.get_mut().push(watch),
-                Entry::Vacant(e) => {
-                    e.insert(vec![watch]);
-                }
-            }
+            self.add_watch(lit, watch);
         }
     }
 
@@ -46,6 +40,7 @@ impl Watchlists {
         self.watches.remove(&lit).unwrap_or(vec![])
     }
 
+    /// Return ownership of a literals watchlist
     pub fn place_watchlist(&mut self, lit: Literal, watchlist: Vec<LiteralWatch>) {
         self.watches.insert(lit, watchlist);
     }
@@ -60,5 +55,19 @@ impl Watchlists {
             let literals = clause.literals();
             self.watch_clause(index, [literals[0], literals[1]]);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_watchlists_from_long_clause() {
+        let mut watches = Watchlists::default();
+        watches.watch_clause(0, [Literal::from_dimacs(1), Literal::from_dimacs(2)]);
+        let list = watches.take_watchlist(Literal::from_dimacs(1));
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].clause_index, 0);
     }
 }

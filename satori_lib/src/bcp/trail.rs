@@ -66,10 +66,6 @@ impl Trail {
             .expect("variable is not set")
     }
 
-    pub fn propagated(&self) -> usize {
-        self.propagated
-    }
-
     pub fn increase_propagated(&mut self) {
         self.propagated += 1;
     }
@@ -89,6 +85,7 @@ impl Trail {
     }
 
     /// Returns the step where given variable was assigned
+    #[allow(dead_code)] // used for tests
     pub fn get_step_for_variable(&self, var: Variable) -> &Step {
         &self.steps[self.step_index(var)]
     }

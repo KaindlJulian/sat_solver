@@ -26,8 +26,7 @@ impl BinaryClauses {
 
     /// Returns all clauses that contain the given literal
     pub fn clauses_with(&self, literal: Literal) -> &[Literal] {
-        &self
-            .literal_lookup
+        self.literal_lookup
             .get(&literal)
             .map(|v| v.as_slice())
             .unwrap_or(&[])

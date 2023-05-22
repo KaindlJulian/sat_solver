@@ -14,7 +14,7 @@ impl Variable {
 
     pub fn from_dimacs(number: i32) -> Variable {
         Variable {
-            index: number.abs() as u32 - 1,
+            index: number.unsigned_abs() - 1,
         }
     }
 

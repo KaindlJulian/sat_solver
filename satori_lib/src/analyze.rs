@@ -1,5 +1,5 @@
 use crate::bcp::conflict::Conflict;
-use crate::bcp::trail::{Reason, Step, StepIndex, Trail};
+use crate::bcp::trail::{Reason, Step, Trail};
 use crate::bcp::{trail, AddedClause, BcpContext};
 use crate::literal::Literal;
 use crate::search::heuristic::HeuristicCallbacks;
@@ -160,7 +160,7 @@ mod test {
     #[test]
     fn test_learn_unit_clause() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-1 3 0\n-2 -3 0\n-4 1 0\n");
+        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 0\n-4 1 0\n");
         let mut analysis = ConflictAnalysis::default();
 
         for c in cnf.clauses().iter() {
@@ -196,7 +196,7 @@ mod test {
     #[test]
     fn long_clause() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-1 3 0\n-2 -3 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
+        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
         let mut analysis = ConflictAnalysis::default();
 
         for c in cnf.clauses().iter() {

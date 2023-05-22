@@ -134,8 +134,7 @@ fn bcp_long_clauses(
     let mut watches = bcp.watch.take_watchlist(watched_literal_1);
     let mut removed_watch_indices: Vec<usize> = vec![];
 
-    'watches: for watch_index in 0..watches.len() {
-        let watch = watches[watch_index];
+    'watches: for (watch_index, watch) in watches.iter().enumerate() {
         let clause = bcp.long_clauses.find_clause_mut(watch.clause_index);
         let literals = clause.literals_mut();
 
@@ -158,7 +157,7 @@ fn bcp_long_clauses(
                 AssignedValue::True | AssignedValue::Unknown => {
                     // change the watches
                     removed_watch_indices.push(watch_index);
-                    bcp.watch.add_watch(current_literal, watch);
+                    bcp.watch.add_watch(current_literal, *watch);
                     // change the clauses literal order
                     literals[0] = current_literal;
                     literals[1] = watched_literal_2;
@@ -210,7 +209,7 @@ mod tests {
     #[test]
     fn test_basic_bcp() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-2 3 0\n-2 -3 -4 0\n");
+        let cnf = CNF::from_dimacs("-1 2 0\n-2 3 0\n-2 -3 -4 0\n");
 
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals(), &mut ());
@@ -234,7 +233,7 @@ mod tests {
     #[test]
     fn test_basic_conflict() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-1 3 0\n-2 -3 0\n");
+        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 0\n");
 
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals(), &mut ());
@@ -254,7 +253,7 @@ mod tests {
     #[test]
     fn test_exercise_5_conflict() {
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_str("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0\n");
+        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0\n");
 
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals(), &mut ());
@@ -281,7 +280,7 @@ mod tests {
     fn test_exercise_6_failed_literals() {
         for test_lit in [-1, 3, 4, 1, -2] {
             let mut bcp = BcpContext::default();
-            let cnf = CNF::from_str("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
+            let cnf = CNF::from_dimacs("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
 
             for c in cnf.clauses().iter() {
                 bcp.add_clause(c.literals(), &mut ());
