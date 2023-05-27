@@ -40,12 +40,7 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
             analyze(conflict, &mut ctx.conflict_analysis, &mut ctx.bcp);
         }
         Ok(_) => {
-            if let Some(literal) = dlis(
-                &mut ctx.dlis,
-                &ctx.bcp.assignment,
-                &ctx.bcp.long_clauses,
-                &ctx.bcp.binary_clauses,
-            ) {
+            if let Some(literal) = dlis(&ctx.dlis, &ctx.bcp.assignment) {
                 // no conflict but not all variables are assigned -> heuristic decision
                 trail::decide_and_assign(&mut ctx.bcp, literal);
             } else {

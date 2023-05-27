@@ -1,4 +1,3 @@
-use crate::assignment::{AssignedValue, VariableAssignment};
 use crate::clause::ClauseMeta;
 use crate::literal::Literal;
 use crate::resize::Resize;
@@ -42,13 +41,8 @@ impl BinaryClauses {
         &mut self.literal_lookup[literal.as_index()]
     }
 
-    pub fn unresolved(&self, literal: Literal, assignment: &VariableAssignment) -> usize {
-        self.literal_lookup[literal.as_index()]
-            .iter()
-            .filter(|c| {
-                assignment.literal_value(literal) == AssignedValue::True
-                    || assignment.literal_value(c.other_literal) == AssignedValue::True
-            })
-            .count()
+    /// Returns the number of binary clauses with this literal
+    pub fn clauses_count(&self, literal: Literal) -> usize {
+        self.literal_lookup[literal.as_index()].len()
     }
 }

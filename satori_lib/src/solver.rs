@@ -23,6 +23,11 @@ impl Solver {
             solver.add_clause(c.literals());
         }
 
+        solver.search.dlis.build_dlis_entries(
+            &solver.search.bcp.binary_clauses,
+            &solver.search.bcp.long_clauses,
+        );
+
         solver
     }
 
