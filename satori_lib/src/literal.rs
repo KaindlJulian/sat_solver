@@ -36,24 +36,23 @@ pub struct Literal {
 }
 
 impl Literal {
-    pub fn from_code(code: u32) -> Literal {
-        Literal { code }
+    pub fn from_code(code: usize) -> Literal {
+        Literal { code: code as u32 }
     }
 
-    // create literal from a 0-based index
-    pub fn from_index(index: u32, negative: bool) -> Literal {
+    pub fn from_index(index: u32, positive: bool) -> Literal {
         Literal {
-            code: index << 1 | (negative as u32),
+            code: index << 1 | (!positive as u32),
         }
     }
 
-    pub fn from_variable(var: Variable, negative: bool) -> Literal {
-        Literal::from_index(var.index, negative)
+    pub fn from_variable(var: &Variable, positive: bool) -> Literal {
+        Literal::from_index(var.index, positive)
     }
 
     pub fn from_dimacs(value: i32) -> Literal {
-        assert_ne!(value, 0);
-        Literal::from_index((value.abs() - 1) as u32, value < 0)
+        assert_ne!(value, 0, "invalid dimacs literal");
+        Literal::from_index((value.abs() - 1) as u32, value > 0)
     }
 
     pub fn as_code(&self) -> u32 {
@@ -118,11 +117,11 @@ mod tests {
         let var_index = 3;
         let var = Variable { index: var_index };
 
-        assert_eq!(var, Literal::from_index(var_index, false).variable());
         assert_eq!(var, Literal::from_index(var_index, true).variable());
+        assert_eq!(var, Literal::from_index(var_index, false).variable());
 
-        assert_eq!(var_index * 2, Literal::from_index(3, false).code);
-        assert_eq!(var_index * 2 + 1, Literal::from_index(3, true).code);
+        assert_eq!(var_index * 2, Literal::from_index(3, true).code);
+        assert_eq!(var_index * 2 + 1, Literal::from_index(3, false).code);
     }
 
     #[test]
@@ -138,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let literal = Literal::from_index(0, false);
+        let literal = Literal::from_index(0, true);
         assert_eq!(1, literal.as_dimacs_integer());
         assert_eq!(-1, (!literal).as_dimacs_integer());
     }

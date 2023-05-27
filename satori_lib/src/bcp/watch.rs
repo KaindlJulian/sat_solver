@@ -6,7 +6,6 @@ use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone)]
 pub struct LiteralWatch {
-    /// index of the clause being watched
     pub clause_index: ClauseIndex,
 }
 

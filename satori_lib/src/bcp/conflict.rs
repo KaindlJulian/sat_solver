@@ -13,7 +13,7 @@ impl Conflict {
     pub fn get_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
         match self {
             Conflict::BinaryClause(literals) => literals,
-            Conflict::LongClause(clause_index) => context.long_clauses.get_literals(*clause_index),
+            Conflict::LongClause(clause_index) => context.long_clauses.literals(*clause_index),
         }
     }
 }

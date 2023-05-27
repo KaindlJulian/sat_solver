@@ -26,7 +26,7 @@ impl Reason {
         match self {
             Reason::SolverDecision | Reason::Unit => &[],
             Reason::Binary(literal) => std::slice::from_ref(literal),
-            Reason::Long(clause_index) => &context.long_clauses.get_literals(*clause_index)[1..],
+            Reason::Long(clause_index) => &context.long_clauses.literals(*clause_index)[1..],
         }
     }
 }

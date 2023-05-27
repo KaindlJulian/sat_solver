@@ -1,16 +1,15 @@
 use crate::literal::Literal;
 
-/// Type wrapper for better type safety. The index of the clause in `LongClauses.clauses`
+/// Type wrapper for readability. The index of the clause in [bcp::long_clauses].
 pub type ClauseIndex = usize;
 
 /// Contains metadata for a clause
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ClauseMeta {
-    is_deleted: bool,
-    is_resolved: bool,
+    pub is_resolved: bool,
 }
 
-/// Representation of one long clause (3+ literals) in the propagation datastructure
+/// Representation of one long clause (3+ literals) in the propagation datastructure [bcp::long_clauses]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Clause {
     header: ClauseMeta,
@@ -31,6 +30,10 @@ impl Clause {
 
     pub fn header(&self) -> &ClauseMeta {
         &self.header
+    }
+
+    pub fn header_mut(&mut self) -> &mut ClauseMeta {
+        &mut self.header
     }
 
     pub fn literals(&self) -> &[Literal] {

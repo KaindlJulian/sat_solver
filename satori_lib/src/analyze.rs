@@ -147,18 +147,20 @@ mod test {
     use crate::bcp::{propagate, BcpContext};
     use crate::cnf::CNF;
     use crate::literal::Variable;
+    use crate::resize::Resize;
 
     #[test]
     fn test_learn_unit_clause() {
-        let mut bcp = BcpContext::default();
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 0\n-4 1 0\n");
-        let mut analysis = ConflictAnalysis::default();
 
+        let mut analysis = ConflictAnalysis::default();
+        let mut bcp = BcpContext::default();
+        bcp.resize(cnf.variable_count());
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-
         bcp.init();
+
         decide_and_assign(&mut bcp, Literal::from_dimacs(4));
 
         let conflict = propagate(&mut bcp).unwrap_err();
@@ -186,14 +188,14 @@ mod test {
 
     #[test]
     fn long_clause() {
-        let mut bcp = BcpContext::default();
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
-        let mut analysis = ConflictAnalysis::default();
 
+        let mut analysis = ConflictAnalysis::default();
+        let mut bcp = BcpContext::default();
+        bcp.resize(cnf.variable_count());
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-
         bcp.init();
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
@@ -218,10 +220,7 @@ mod test {
             .get_step_for_variable(Variable::from_dimacs(7))
             .reason
         {
-            assert_eq!(
-                bcp.long_clauses.get_literals(clause),
-                analysis.derived_clause
-            );
+            assert_eq!(bcp.long_clauses.literals(clause), analysis.derived_clause);
             analysis.derived_clause.sort_unstable();
             assert_eq!(
                 analysis.derived_clause,
@@ -242,14 +241,14 @@ mod test {
 
     #[test]
     fn binary_clause() {
-        let mut bcp = BcpContext::default();
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
-        let mut analysis = ConflictAnalysis::default();
 
+        let mut analysis = ConflictAnalysis::default();
+        let mut bcp = BcpContext::default();
+        bcp.resize(cnf.variable_count());
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-
         bcp.init();
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));

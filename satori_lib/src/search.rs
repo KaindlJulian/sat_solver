@@ -1,9 +1,9 @@
 use crate::analyze::{analyze, ConflictAnalysis};
 use crate::bcp::{propagate, trail, BcpContext};
-use crate::search::dlis::{decide, Dlis};
+use crate::resize::Resize;
+use crate::search::dlis::{dlis, Dlis};
 
 mod dlis;
-pub mod heuristic;
 
 /// outer data structures for CDCL search
 #[derive(Default, Debug)]
@@ -11,6 +11,13 @@ pub struct SearchContext {
     pub bcp: BcpContext,
     pub conflict_analysis: ConflictAnalysis,
     pub dlis: Dlis,
+}
+
+impl Resize for SearchContext {
+    fn resize(&mut self, var_count: usize) {
+        self.bcp.resize(var_count);
+        self.dlis.resize(var_count);
+    }
 }
 
 /// Perform one step of the CDCL algorithm
@@ -32,7 +39,12 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
             analyze(conflict, &mut ctx.conflict_analysis, &mut ctx.bcp);
         }
         Ok(_) => {
-            if let Some(literal) = decide(&ctx.dlis, &ctx.bcp.assignment) {
+            if let Some(literal) = dlis(
+                &mut ctx.dlis,
+                &ctx.bcp.assignment,
+                &ctx.bcp.long_clauses,
+                &ctx.bcp.binary_clauses,
+            ) {
                 // no conflict but not all variables are assigned -> heuristic decision
                 trail::decide_and_assign(&mut ctx.bcp, literal);
             } else {

@@ -1,6 +1,7 @@
 use crate::clause::{Clause, ClauseIndex};
 use crate::literal::Literal;
 
+/// Holds all long clauses during propagation
 #[derive(Default, Debug)]
 pub struct LongClauses {
     clauses: Vec<Clause>,
@@ -21,7 +22,15 @@ impl LongClauses {
         self.clauses.get_mut(index).expect("no clause found")
     }
 
-    pub fn get_literals(&self, index: ClauseIndex) -> &[Literal] {
+    pub fn literals(&self, index: ClauseIndex) -> &[Literal] {
         self.clauses[index].literals()
+    }
+
+    pub fn unresolved(&self, literal: Literal) -> usize {
+        self.clauses
+            .iter()
+            .filter(|c| !c.header().is_resolved)
+            .filter(|c| c.literals().contains(&literal))
+            .count()
     }
 }

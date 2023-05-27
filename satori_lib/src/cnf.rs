@@ -55,6 +55,10 @@ impl CNF {
         }
     }
 
+    pub fn variable_count(&self) -> usize {
+        self.variables.len()
+    }
+
     pub fn variables(&self) -> Vec<Variable> {
         self.variables.clone()
     }

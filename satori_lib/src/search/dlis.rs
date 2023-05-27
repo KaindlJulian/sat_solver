@@ -1,12 +1,12 @@
 use crate::assignment::VariableAssignment;
+use crate::literal::Literal;
+
 use crate::bcp::binary_clauses::BinaryClauses;
 use crate::bcp::long_clauses::LongClauses;
-use crate::clause::Clause;
-use crate::literal::Literal;
-use crate::search::heuristic::HeuristicCallbacks;
+use crate::resize::Resize;
 use std::cmp::Ordering;
 
-/// Implements the  Dynamic Largest Individual Sum (DLIS) decision heuristic.
+/// Implements Dynamic Largest Individual Sum (DLIS).
 ///
 /// Approach: choose literal that satisfies most unresolved clauses
 ///  - for each variable x, calculate
@@ -16,79 +16,79 @@ use std::cmp::Ordering;
 ///  - if C(x) > C(-y) set x to true, else set y to false
 #[derive(Default, Debug)]
 pub struct Dlis {
-    // maps a literal (indexed by the literal code) to its number of clauses
-    entries: Vec<u32>,
+    // maps a literal (indexed by the literal code) to its number of unresolved clauses
+    entries: Vec<usize>,
 }
 
-impl HeuristicCallbacks for Dlis {
-    fn resolved(&mut self, clause: Clause) {
-        clause.literals().iter().for_each(|l| self.decrement(*l));
+impl Resize for Dlis {
+    fn resize(&mut self, variable_count: usize) {
+        self.entries.resize(variable_count * 2, 0);
     }
 }
 
 impl Dlis {
-    pub fn increment(&mut self, literal: Literal) {
-        self.entries[literal.as_index()] += 1;
+    fn clear(&mut self) {
+        self.entries.resize(self.entries.len(), 0);
     }
 
-    pub fn decrement(&mut self, literal: Literal) {
-        self.entries[literal.as_index()] -= 1;
-    }
-
-    pub fn resize(&mut self, var_count: usize) {
-        self.entries.resize(2 * var_count, 0);
-    }
-
-    pub fn build_dlis_entries(
-        &mut self,
-        binary_clauses: &BinaryClauses,
-        long_clauses: &LongClauses,
-    ) {
-        for clause in binary_clauses
-            .clauses()
+    fn decide(&self) -> Option<Literal> {
+        let x = &self
+            .entries
             .iter()
-            .chain(long_clauses.clauses().iter())
-        {
-            for literal in clause.literals() {
-                self.increment(*literal);
-            }
+            .enumerate()
+            .filter(|(code, _)| Literal::from_code(*code).is_positive())
+            .filter(|(_, count)| **count > 0)
+            .max_by_key(|(_, count)| *count)
+            .map(|(code, _)| Literal::from_code(code));
+
+        let y = &self
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(code, _)| Literal::from_code(*code).is_negative())
+            .filter(|(_, count)| **count > 0)
+            .max_by_key(|(_, count)| *count)
+            .map(|(code, _)| Literal::from_code(code));
+
+        match (x, y) {
+            (Some(x), Some(y)) => match self.entries[x.as_index()].cmp(&self.entries[y.as_index()])
+            {
+                Ordering::Greater => Some(*x),
+                Ordering::Equal => Some(*y),
+                Ordering::Less => Some(*y),
+            },
+            (Some(x), None) => Some(*x),
+            (None, Some(y)) => Some(*y),
+            (None, None) => None,
         }
     }
 }
 
-/// Returns the optimal next decision literal according to DLIS or `None` if no variables are unassigned
-pub fn decide(dlis: &Dlis, assignment: &VariableAssignment) -> Option<Literal> {
-    let unassigned_literals = dlis
-        .entries
-        .iter()
-        .enumerate()
-        .map(|(i, _)| Literal::from_code(i as u32))
-        .filter(|l| !assignment.is_assigned(l.variable()))
-        .collect::<Vec<_>>();
-
-    if unassigned_literals.is_empty() {
+/// Returns the next decision literal according to DLIS or `None` if no variables are unassigned.
+pub fn dlis(
+    dlis: &mut Dlis,
+    assignment: &VariableAssignment,
+    long: &LongClauses,
+    binary: &BinaryClauses,
+) -> Option<Literal> {
+    let unassigned_variables = assignment.unassigned();
+    if unassigned_variables.is_empty() {
         return None;
     }
 
-    let x = unassigned_literals
-        .iter()
-        .filter(|x| x.is_positive())
-        .max_by_key(|x| dlis.entries[x.as_index()]);
-    let y = unassigned_literals
-        .iter()
-        .filter(|y| y.is_negative())
-        .max_by_key(|y| dlis.entries[y.as_index()]);
+    //return unassigned_variables.first().map(|v| Literal::from_variable(v, true));
 
-    match (x, y) {
-        (Some(x), Some(y)) => match dlis.entries[x.as_index()].cmp(&dlis.entries[y.as_index()]) {
-            Ordering::Greater => Some(*x),
-            Ordering::Equal => Some(*y),
-            Ordering::Less => Some(*y),
-        },
-        (Some(x), None) => Some(*x),
-        (None, Some(y)) => Some(*y),
-        (None, None) => None,
+    dlis.clear();
+
+    for v in unassigned_variables {
+        for sign in [true, false] {
+            let lit = Literal::from_variable(&v, sign);
+            let unresolved_clauses_count = long.unresolved(lit) + binary.unresolved(lit);
+            dlis.entries[lit.as_index()] = unresolved_clauses_count;
+        }
     }
+
+    dlis.decide()
 }
 
 #[cfg(test)]
@@ -99,34 +99,24 @@ mod tests {
     fn test_literal_is_positive() {
         let mut dlis = Dlis::default();
         dlis.resize(1);
-        let assignment = VariableAssignment::default();
 
         dlis.entries[Literal::from_dimacs(1).as_index()] = 2;
         dlis.entries[Literal::from_dimacs(-1).as_index()] = 1;
 
-        dbg!(&dlis.entries);
-
-        assert_eq!(decide(&dlis, &assignment).unwrap(), Literal::from_dimacs(1));
+        let decision = dlis.decide().unwrap();
+        assert_eq!(decision, Literal::from_dimacs(1));
     }
 
     #[test]
     fn test_literal_is_negative() {
         let mut dlis = Dlis::default();
         dlis.resize(1);
-        let assignment = VariableAssignment::default();
 
         dlis.entries[Literal::from_dimacs(1).as_index()] = 1;
         dlis.entries[Literal::from_dimacs(-1).as_index()] = 2;
 
-        assert_eq!(
-            decide(&dlis, &assignment).unwrap(),
-            Literal::from_dimacs(-1)
-        );
-        dlis.decrement(Literal::from_dimacs(-1));
-        assert_eq!(
-            decide(&dlis, &assignment).unwrap(),
-            Literal::from_dimacs(-1)
-        );
+        let decision = dlis.decide().unwrap();
+        assert_eq!(decision, Literal::from_dimacs(-1));
     }
 
     #[test]
@@ -134,12 +124,11 @@ mod tests {
         let mut dlis = Dlis::default();
         dlis.resize(1);
 
-        let mut assignment = VariableAssignment::default();
-        assignment.assign_true(Literal::from_dimacs(1));
+        dlis.entries[Literal::from_dimacs(1).as_index()] = 0;
+        dlis.entries[Literal::from_dimacs(-1).as_index()] = 0;
 
-        dlis.entries[Literal::from_dimacs(1).as_index()] = 2;
-        dlis.entries[Literal::from_dimacs(-1).as_index()] = 1;
-
-        assert!(decide(&dlis, &assignment).is_none());
+        let decision = dlis.decide();
+        dbg!(decision);
+        assert!(decision.is_none());
     }
 }

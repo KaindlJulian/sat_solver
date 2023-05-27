@@ -1,38 +1,50 @@
-use crate::clause::Clause;
+use crate::clause::ClauseMeta;
 use crate::literal::Literal;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use crate::resize::Resize;
+
+#[derive(Debug, Copy, Clone)]
+pub struct BinaryClause {
+    pub other_literal: Literal,
+    pub header: ClauseMeta,
+}
 
 #[derive(Default, Debug)]
 pub struct BinaryClauses {
     /// maps a literal to the other literals it forms a binary clause with for fast lookup
-    literal_lookup: HashMap<Literal, Vec<Literal>>,
-    /// as in long clauses
-    clauses: Vec<Clause>,
+    /// indexed by the literal code
+    literal_lookup: Vec<Vec<BinaryClause>>,
+}
+
+impl Resize for BinaryClauses {
+    fn resize(&mut self, variable_count: usize) {
+        self.literal_lookup.resize(variable_count * 2, vec![]);
+    }
 }
 
 impl BinaryClauses {
     pub fn add_clause(&mut self, clause: [Literal; 2]) {
-        for i in 0..2 {
-            match self.literal_lookup.entry(clause[i]) {
-                Entry::Occupied(mut e) => e.get_mut().push(clause[i ^ 1]),
-                Entry::Vacant(e) => {
-                    e.insert(vec![clause[i ^ 1]]);
-                }
-            }
+        let max = clause[0].as_index().max(clause[1].as_index());
+        if self.literal_lookup.len() <= max {
+            //self.resize(max + 2);
         }
-        self.clauses.push(Clause::from_literals(&clause));
+
+        for i in 0..2 {
+            self.literal_lookup[clause[i].as_index()].push(BinaryClause {
+                other_literal: clause[i ^ 1],
+                header: Default::default(),
+            });
+        }
     }
 
-    /// Returns all clauses that contain the given literal
-    pub fn clauses_with(&self, literal: Literal) -> &[Literal] {
-        self.literal_lookup
-            .get(&literal)
-            .map(|v| v.as_slice())
-            .unwrap_or(&[])
+    /// Returns all binary clauses that contain the given literal
+    pub fn clauses_mut(&mut self, literal: Literal) -> &mut Vec<BinaryClause> {
+        &mut self.literal_lookup[literal.as_index()]
     }
 
-    pub fn clauses(&self) -> &Vec<Clause> {
-        &self.clauses
+    pub fn unresolved(&self, literal: Literal) -> usize {
+        self.literal_lookup[literal.as_index()]
+            .iter()
+            .filter(|c| !c.header.is_resolved)
+            .count()
     }
 }

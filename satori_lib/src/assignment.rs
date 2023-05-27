@@ -14,10 +14,11 @@ impl Not for AssignedValue {
     type Output = AssignedValue;
 
     fn not(self) -> Self::Output {
+        use AssignedValue::*;
         match self {
-            AssignedValue::True => AssignedValue::False,
-            AssignedValue::False => AssignedValue::True,
-            AssignedValue::Unknown => AssignedValue::Unknown,
+            True => False,
+            False => True,
+            Unknown => Unknown,
         }
     }
 }
@@ -26,9 +27,15 @@ impl Not for AssignedValue {
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct VariableAssignment {
     partial: HashMap<Variable, AssignedValue>,
+    /// maps variables to assignments, indexed by the variables index
+    partial2: Vec<AssignedValue>,
 }
 
 impl VariableAssignment {
+    pub fn resize(&mut self, var_count: usize) {
+        self.partial2.resize(var_count, AssignedValue::Unknown);
+    }
+
     pub fn assign_true(&mut self, lit: Literal) {
         self.partial.insert(
             lit.variable(),
@@ -38,17 +45,24 @@ impl VariableAssignment {
                 AssignedValue::False
             },
         );
+        self.partial2[lit.variable().index() as usize] = if lit.is_positive() {
+            AssignedValue::True
+        } else {
+            AssignedValue::False
+        }
     }
 
     pub fn assign_unknown(&mut self, var: Variable) {
         self.partial.insert(var, AssignedValue::Unknown);
+        self.partial2[var.index() as usize] = AssignedValue::Unknown;
     }
 
     pub fn value(&self, var: Variable) -> AssignedValue {
-        self.partial
-            .get(&var)
-            .copied()
-            .unwrap_or(AssignedValue::Unknown)
+        /*self.partial
+        .get(&var)
+        .copied()
+        .unwrap_or(AssignedValue::Unknown)*/
+        self.partial2[var.index() as usize]
     }
 
     pub fn literal_value(&self, lit: Literal) -> AssignedValue {
@@ -62,23 +76,38 @@ impl VariableAssignment {
 
     /// Returns the literals that are assigned
     pub fn partial(&self) -> Vec<Literal> {
+        /*let mut partial = self
+        .partial
+        .iter()
+        .filter(|(_, v)| **v != AssignedValue::Unknown)
+        .map(|(k, v)| (k, *v == AssignedValue::False))
+        .map(|(k, v)| Literal::from_variable(k, v))
+        .collect::<Vec<_>>();*/
         let mut partial = self
-            .partial
+            .partial2
             .iter()
+            .enumerate()
             .filter(|(_, v)| **v != AssignedValue::Unknown)
-            .map(|(k, v)| (k, *v == AssignedValue::False))
-            .map(|(k, v)| Literal::from_index(k.index(), v))
+            .map(|(k, v)| (k, *v == AssignedValue::True))
+            .map(|(k, v)| Literal::from_index(k as u32, v))
             .collect::<Vec<_>>();
         partial.sort();
         partial
     }
 
-    /// Returns true if a variable is assigned
-    pub fn is_assigned(&self, variable: Variable) -> bool {
-        self.partial
-            .get(&variable)
-            .map(|a| a != &AssignedValue::Unknown)
-            .unwrap_or(false)
+    pub fn unassigned(&self) -> Vec<Variable> {
+        /*self.partial
+        .iter()
+        .filter(|(_, v)| **v == AssignedValue::Unknown)
+        .map(|(k, _)| k)
+        .cloned()
+        .collect::<Vec<_>>()*/
+        self.partial2
+            .iter()
+            .enumerate()
+            .filter(|(_, v)| **v == AssignedValue::Unknown)
+            .map(|(k, _)| Variable::from_index(k as u32))
+            .collect()
     }
 }
 
@@ -89,6 +118,8 @@ mod tests {
     #[test]
     fn test_get_value_for_variable() {
         let mut assignments = VariableAssignment::default();
+        assignments.resize(1);
+
         let lit = Literal::from_dimacs(1);
         let var = lit.variable();
 
@@ -104,6 +135,8 @@ mod tests {
     #[test]
     fn test_get_value_for_literal() {
         let mut assignments = VariableAssignment::default();
+        assignments.resize(1);
+
         let a = Literal::from_dimacs(1);
 
         // a = ?
@@ -122,9 +155,12 @@ mod tests {
     #[test]
     fn test_partial() {
         let mut assignments = VariableAssignment::default();
+        assignments.resize(5);
 
         assignments.assign_true(Literal::from_dimacs(1));
         assignments.assign_true(Literal::from_dimacs(-2));
+        assignments.assign_true(Literal::from_dimacs(-3));
+        assignments.assign_true(Literal::from_dimacs(4));
         assignments.assign_unknown(Literal::from_dimacs(5).variable());
 
         assert_eq!(
