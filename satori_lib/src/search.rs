@@ -4,6 +4,7 @@ use crate::resize::Resize;
 use crate::search::dlis::{dlis, Dlis};
 
 mod dlis;
+mod first_unassigned;
 
 /// outer data structures for CDCL search
 #[derive(Default, Debug)]

@@ -1,5 +1,4 @@
 use crate::literal::{Literal, Variable};
-use std::collections::HashMap;
 use std::ops::Not;
 
 /// Possible assignment values for a variable
@@ -26,26 +25,17 @@ impl Not for AssignedValue {
 /// Holds assignments to variables
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct VariableAssignment {
-    partial: HashMap<Variable, AssignedValue>,
     /// maps variables to assignments, indexed by the variables index
-    partial2: Vec<AssignedValue>,
+    partial: Vec<AssignedValue>,
 }
 
 impl VariableAssignment {
     pub fn resize(&mut self, var_count: usize) {
-        self.partial2.resize(var_count, AssignedValue::Unknown);
+        self.partial.resize(var_count, AssignedValue::Unknown);
     }
 
     pub fn assign_true(&mut self, lit: Literal) {
-        self.partial.insert(
-            lit.variable(),
-            if lit.is_positive() {
-                AssignedValue::True
-            } else {
-                AssignedValue::False
-            },
-        );
-        self.partial2[lit.variable().index() as usize] = if lit.is_positive() {
+        self.partial[lit.variable().index() as usize] = if lit.is_positive() {
             AssignedValue::True
         } else {
             AssignedValue::False
@@ -53,16 +43,11 @@ impl VariableAssignment {
     }
 
     pub fn assign_unknown(&mut self, var: Variable) {
-        self.partial.insert(var, AssignedValue::Unknown);
-        self.partial2[var.index() as usize] = AssignedValue::Unknown;
+        self.partial[var.index() as usize] = AssignedValue::Unknown;
     }
 
     pub fn value(&self, var: Variable) -> AssignedValue {
-        /*self.partial
-        .get(&var)
-        .copied()
-        .unwrap_or(AssignedValue::Unknown)*/
-        self.partial2[var.index() as usize]
+        self.partial[var.index() as usize]
     }
 
     pub fn literal_value(&self, lit: Literal) -> AssignedValue {
@@ -76,15 +61,8 @@ impl VariableAssignment {
 
     /// Returns the literals that are assigned
     pub fn partial(&self) -> Vec<Literal> {
-        /*let mut partial = self
-        .partial
-        .iter()
-        .filter(|(_, v)| **v != AssignedValue::Unknown)
-        .map(|(k, v)| (k, *v == AssignedValue::False))
-        .map(|(k, v)| Literal::from_variable(k, v))
-        .collect::<Vec<_>>();*/
         let mut partial = self
-            .partial2
+            .partial
             .iter()
             .enumerate()
             .filter(|(_, v)| **v != AssignedValue::Unknown)
@@ -96,13 +74,7 @@ impl VariableAssignment {
     }
 
     pub fn unassigned(&self) -> Vec<Variable> {
-        /*self.partial
-        .iter()
-        .filter(|(_, v)| **v == AssignedValue::Unknown)
-        .map(|(k, _)| k)
-        .cloned()
-        .collect::<Vec<_>>()*/
-        self.partial2
+        self.partial
             .iter()
             .enumerate()
             .filter(|(_, v)| **v == AssignedValue::Unknown)

@@ -1,3 +1,4 @@
+use crate::assignment::{AssignedValue, VariableAssignment};
 use crate::clause::{Clause, ClauseIndex};
 use crate::literal::Literal;
 
@@ -26,11 +27,19 @@ impl LongClauses {
         self.clauses[index].literals()
     }
 
-    pub fn unresolved(&self, literal: Literal) -> usize {
+    pub fn is_resolved(&self, index: ClauseIndex, assignment: &VariableAssignment) -> bool {
+        self.clauses[index]
+            .literals()
+            .iter()
+            .any(|l| assignment.literal_value(*l) == AssignedValue::True)
+    }
+
+    pub fn unresolved(&self, literal: Literal, assignment: &VariableAssignment) -> usize {
         self.clauses
             .iter()
-            .filter(|c| !c.header().is_resolved)
-            .filter(|c| c.literals().contains(&literal))
+            .enumerate()
+            .filter(|(_, c)| c.literals().contains(&literal))
+            .filter(|(i, _)| self.is_resolved(*i, assignment))
             .count()
     }
 }

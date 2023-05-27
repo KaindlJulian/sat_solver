@@ -1,3 +1,4 @@
+use crate::assignment::{AssignedValue, VariableAssignment};
 use crate::clause::ClauseMeta;
 use crate::literal::Literal;
 use crate::resize::Resize;
@@ -41,10 +42,13 @@ impl BinaryClauses {
         &mut self.literal_lookup[literal.as_index()]
     }
 
-    pub fn unresolved(&self, literal: Literal) -> usize {
+    pub fn unresolved(&self, literal: Literal, assignment: &VariableAssignment) -> usize {
         self.literal_lookup[literal.as_index()]
             .iter()
-            .filter(|c| !c.header.is_resolved)
+            .filter(|c| {
+                assignment.literal_value(literal) == AssignedValue::True
+                    || assignment.literal_value(c.other_literal) == AssignedValue::True
+            })
             .count()
     }
 }
