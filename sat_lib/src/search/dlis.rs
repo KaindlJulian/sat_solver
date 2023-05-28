@@ -110,7 +110,9 @@ mod tests {
         dlis.clauses_by_lit[Literal::from_dimacs(1).as_index()] = 2;
         dlis.clauses_by_lit[Literal::from_dimacs(-1).as_index()] = 1;
 
-        let decision = dlis.decide(vec![]).unwrap();
+        let decision = dlis
+            .decide(vec![Literal::from_dimacs(1), Literal::from_dimacs(-1)])
+            .unwrap();
         assert_eq!(decision, Literal::from_dimacs(1));
     }
 
@@ -122,7 +124,9 @@ mod tests {
         dlis.clauses_by_lit[Literal::from_dimacs(1).as_index()] = 1;
         dlis.clauses_by_lit[Literal::from_dimacs(-1).as_index()] = 2;
 
-        let decision = dlis.decide(vec![]).unwrap();
+        let decision = dlis
+            .decide(vec![Literal::from_dimacs(1), Literal::from_dimacs(-1)])
+            .unwrap();
         assert_eq!(decision, Literal::from_dimacs(-1));
     }
 
@@ -131,8 +135,8 @@ mod tests {
         let mut dlis = Dlis::default();
         dlis.resize(1);
 
-        dlis.clauses_by_lit[Literal::from_dimacs(1).as_index()] = 0;
-        dlis.clauses_by_lit[Literal::from_dimacs(-1).as_index()] = 0;
+        dlis.clauses_by_lit[Literal::from_dimacs(1).as_index()] = 1;
+        dlis.clauses_by_lit[Literal::from_dimacs(-1).as_index()] = 2;
 
         let decision = dlis.decide(vec![]);
         dbg!(decision);
