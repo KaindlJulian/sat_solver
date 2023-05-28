@@ -1,6 +1,6 @@
 use clap::Parser;
-use satori_lib::cnf::CNF;
-use satori_lib::solver::Solver;
+use sat_lib::cnf::CNF;
+use sat_lib::solver::Solver;
 use std::path::PathBuf;
 
 #[derive(Parser)]

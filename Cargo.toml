@@ -1,2 +1,2 @@
 [workspace]
-members = ["satori_lib", "satori_cli"]
+members = ["sat_lib", "sat_cli"]
