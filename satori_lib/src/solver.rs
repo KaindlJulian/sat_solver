@@ -40,13 +40,8 @@ impl Solver {
         self.search.bcp.add_clause(clause);
     }
 
-    pub fn init(&mut self) {
-        self.search.bcp.init();
-    }
-
     /// Check satisfiability of the formula
     pub fn solve(&mut self) -> bool {
-        self.init();
         loop {
             if let Some(result) = search(&mut self.search) {
                 return result;

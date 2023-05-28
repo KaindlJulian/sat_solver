@@ -159,7 +159,6 @@ mod test {
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-        bcp.init();
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(4));
 
@@ -196,7 +195,6 @@ mod test {
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-        bcp.init();
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
@@ -249,7 +247,6 @@ mod test {
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-        bcp.init();
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 

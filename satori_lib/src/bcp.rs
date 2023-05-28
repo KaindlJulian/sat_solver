@@ -37,14 +37,11 @@ impl Resize for BcpContext {
     fn resize(&mut self, var_count: usize) {
         self.assignment.resize(var_count);
         self.binary_clauses.resize(var_count);
+        self.watch.resize(var_count);
     }
 }
 
 impl BcpContext {
-    pub fn init(&mut self) {
-        self.watch.build_watchlists(&self.long_clauses);
-    }
-
     pub fn add_clause(&mut self, literals: &[Literal]) -> AddedClause {
         match *literals {
             [] => {
@@ -93,16 +90,14 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     // look at all clauses containing !literal
     let not_literal = !literal;
 
-    for mut entry in bcp.binary_clauses.clauses_mut(!literal) {
+    for entry in bcp.binary_clauses.clauses(!literal) {
         match bcp.assignment.literal_value(entry.other_literal) {
             // the other literal is true -> already satisfied
             AssignedValue::True => {
-                entry.header.is_resolved = true;
                 continue;
             }
             // the other literal is false -> conflict
             AssignedValue::False => {
-                entry.header.is_resolved = false;
                 return Err(Conflict::BinaryClause([not_literal, entry.other_literal]));
             }
             // the other literal is unassigned -> clause became unit, propagate the other literal
@@ -113,7 +108,6 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
                     reason: Reason::Binary(not_literal),
                 };
                 trail::assign(&mut bcp.assignment, &mut bcp.trail, step);
-                entry.header.is_resolved = true;
             }
         }
     }
@@ -129,7 +123,12 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
     let mut watches = bcp.watch.take_watchlist(watched_literal_1);
     let mut removed_watch_indices: Vec<usize> = vec![];
 
-    'watches: for (watch_index, watch) in watches.iter().enumerate() {
+    'watches: for (watch_index, watch) in watches.iter_mut().enumerate() {
+        // the clause is already satisfied by the blocking literal
+        if bcp.assignment.literal_value(watch.satisfying_literal) == AssignedValue::True {
+            continue;
+        }
+
         let clause = bcp.long_clauses.find_clause_mut(watch.clause_index);
         let literals = clause.literals_mut();
 
@@ -142,7 +141,7 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
 
         // the clause is already satisfied by the other watched literal
         if bcp.assignment.literal_value(watched_literal_2) == AssignedValue::True {
-            clause.header_mut().is_resolved = true;
+            watch.satisfying_literal = watched_literal_2;
             continue;
         }
 
@@ -150,9 +149,14 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
         for i in 2..literals.len() {
             let current_literal = literals[i];
             match bcp.assignment.literal_value(current_literal) {
-                AssignedValue::True | AssignedValue::Unknown => {
+                AssignedValue::True => {
+                    watch.satisfying_literal = current_literal;
+                    continue 'watches;
+                }
+                AssignedValue::Unknown => {
                     // change the watches
                     removed_watch_indices.push(watch_index);
+                    watch.satisfying_literal = watched_literal_2;
                     bcp.watch.add_watch(current_literal, *watch);
                     // change the clauses literal order
                     literals[0] = current_literal;
@@ -178,11 +182,9 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
                 };
 
                 trail::assign(&mut bcp.assignment, &mut bcp.trail, step);
-                clause.header_mut().is_resolved = true;
             }
             // all literals are false, conflict
             AssignedValue::False => {
-                clause.header_mut().is_resolved = false;
                 result = Err(Conflict::LongClause(watch.clause_index));
                 break;
             }
@@ -206,15 +208,15 @@ mod tests {
 
     #[test]
     fn test_basic_bcp() {
+        let cnf = CNF::from_dimacs("-1 2 0\n-2 3 0\n-2 -3 -4 0\n6 7 0\n");
+
         let mut bcp = BcpContext::default();
-        let cnf = CNF::from_dimacs("-1 2 0\n-2 3 0\n-2 -3 -4 0\n6 7\n");
         bcp.resize(cnf.variable_count());
 
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
 
-        bcp.init();
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
         assert!(propagate(&mut bcp).is_ok());
@@ -238,7 +240,6 @@ mod tests {
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-        bcp.init();
 
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
@@ -259,7 +260,6 @@ mod tests {
         for c in cnf.clauses().iter() {
             bcp.add_clause(c.literals());
         }
-        bcp.init();
 
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-9));
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-10));
@@ -286,7 +286,6 @@ mod tests {
             for c in cnf.clauses().iter() {
                 bcp.add_clause(c.literals());
             }
-            bcp.init();
 
             trail::decide_and_assign(&mut bcp, Literal::from_dimacs(test_lit));
 

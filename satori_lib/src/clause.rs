@@ -5,9 +5,7 @@ pub type ClauseIndex = usize;
 
 /// Contains metadata for a clause
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ClauseMeta {
-    pub is_resolved: bool,
-}
+pub struct ClauseMeta {}
 
 /// Representation of one long clause (3+ literals) in the propagation datastructure [bcp::long_clauses]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

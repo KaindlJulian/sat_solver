@@ -37,7 +37,7 @@ impl BinaryClauses {
     }
 
     /// Returns all binary clauses that contain the given literal
-    pub fn clauses_mut(&mut self, literal: Literal) -> &mut Vec<BinaryClause> {
+    pub fn clauses(&mut self, literal: Literal) -> &mut Vec<BinaryClause> {
         &mut self.literal_lookup[literal.as_index()]
     }
 
