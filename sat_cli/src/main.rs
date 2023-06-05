@@ -6,16 +6,20 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[group(required = true)]
 struct Args {
-    /// dimacs cnf file(s)
-    file: Vec<PathBuf>,
+    /// dimacs cnf file
+    file: PathBuf,
 }
 
 fn main() {
     let args = Args::parse();
-    for path in args.file {
-        print!("{:?}: ", path.file_name().unwrap());
-        let cnf = CNF::from_file(path);
-        let mut solver = Solver::from_cnf(cnf);
-        println!("{}", solver.solve());
+    let cnf = CNF::from_file(args.file);
+    let mut solver = Solver::from_cnf(cnf);
+
+    if solver.solve() {
+        println!("SATIFIABLE");
+        std::process::exit(10);
+    } else {
+        println!("UNSATIFIABLE");
+        std::process::exit(20);
     }
 }
