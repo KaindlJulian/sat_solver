@@ -13,7 +13,7 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let cnf = CNF::from_file(args.file);
-    let mut solver = Solver::from_cnf(cnf);
+    let mut solver = Solver::from_cnf(cnf).with_dlis();
 
     if solver.solve() {
         println!("SATIFIABLE");

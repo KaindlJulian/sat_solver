@@ -1,7 +1,9 @@
 use crate::analyze::{analyze, ConflictAnalysis};
 use crate::bcp::{propagate, trail, BcpContext};
+use crate::literal::Literal;
 use crate::resize::Resize;
-use crate::search::dlis::{dlis, Dlis};
+use crate::search::dlis::Dlis;
+
 
 mod dlis;
 mod first_unassigned;
@@ -12,6 +14,7 @@ pub struct SearchContext {
     pub bcp: BcpContext,
     pub conflict_analysis: ConflictAnalysis,
     pub dlis: Dlis,
+    pub use_dlis: bool,
 }
 
 impl Resize for SearchContext {
@@ -40,7 +43,7 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
             analyze(conflict, &mut ctx.conflict_analysis, &mut ctx.bcp);
         }
         Ok(_) => {
-            if let Some(literal) = dlis(&ctx.dlis, &ctx.bcp.assignment) {
+            if let Some(literal) = make_decision(ctx) {
                 // no conflict but not all variables are assigned -> heuristic decision
                 trail::decide_and_assign(&mut ctx.bcp, literal);
             } else {
@@ -51,4 +54,12 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
     }
 
     None
+}
+
+fn make_decision(search_context: &mut SearchContext) -> Option<Literal> {
+    if search_context.use_dlis {
+        dlis::dlis(&mut search_context.dlis, &search_context.bcp.assignment)
+    } else {
+        first_unassigned::first_unassigned(&search_context.bcp.assignment)
+    }
 }

@@ -35,6 +35,11 @@ impl Solver {
         Self::from_cnf(CNF::from_clauses(&clauses))
     }
 
+    pub fn with_dlis(mut self) -> Self {
+        self.search.use_dlis = true;
+        self
+    }
+
     /// Adds a clause to the formula, can break invariants if adding new variables
     pub fn add_clause(&mut self, clause: &[Literal]) {
         self.search.bcp.add_clause(clause);

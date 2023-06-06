@@ -60,7 +60,9 @@ impl Dlis {
             if literal.is_positive() && count > x_max {
                 x_max = count;
                 x = Some(literal);
-            } else if literal.is_negative() && count > y_max {
+            }
+
+            if literal.is_negative() && count > y_max {
                 y_max = count;
                 y = Some(literal);
             }
@@ -82,7 +84,7 @@ impl Dlis {
 }
 
 /// Returns the next decision literal according to DLIS or `None` if no variables are unassigned.
-pub fn dlis(dlis: &Dlis, assignment: &VariableAssignment) -> Option<Literal> {
+pub fn dlis(dlis: &mut Dlis, assignment: &VariableAssignment) -> Option<Literal> {
     let unassigned_literals = assignment
         .unassigned()
         .iter()
