@@ -21,6 +21,10 @@ impl Variable {
     pub fn index(&self) -> u32 {
         self.index
     }
+
+    pub fn as_index(&self) -> usize {
+        self.index as usize
+    }
 }
 
 /// Literals are represented as numbers starting from 0, where a literal is calculated from the

@@ -2,7 +2,7 @@ use crate::assignment::VariableAssignment;
 use crate::bcp::BcpContext;
 use crate::clause::ClauseIndex;
 use crate::literal::{Literal, Variable};
-use std::collections::HashMap;
+use crate::resize::Resize;
 
 pub type StepIndex = usize;
 
@@ -41,9 +41,15 @@ pub struct Step {
 #[derive(Debug)]
 pub struct Trail {
     steps: Vec<Step>,
-    step_index_by_var: HashMap<Variable, StepIndex>,
+    step_index_by_var: Vec<StepIndex>,
     propagated: usize,
     decisions: Vec<u32>,
+}
+
+impl Resize for Trail {
+    fn resize(&mut self, var_count: usize) {
+        self.step_index_by_var.resize(var_count, 0);
+    }
 }
 
 impl Default for Trail {
@@ -59,10 +65,7 @@ impl Default for Trail {
 
 impl Trail {
     pub fn step_index(&self, variable: Variable) -> StepIndex {
-        *self
-            .step_index_by_var
-            .get(&variable)
-            .expect("variable is not set")
+        self.step_index_by_var[variable.as_index()]
     }
 
     pub fn increase_propagated(&mut self) {
@@ -92,9 +95,7 @@ impl Trail {
 
 /// adds given step to the trail, assigning the literal
 pub fn assign(values: &mut VariableAssignment, trail: &mut Trail, step: Step) {
-    trail
-        .step_index_by_var
-        .insert(step.assigned_literal.variable(), trail.steps.len());
+    trail.step_index_by_var[step.assigned_literal.variable().as_index()] = trail.steps.len();
     values.assign_true(step.assigned_literal);
     trail.steps.push(step);
 }

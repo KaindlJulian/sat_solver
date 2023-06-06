@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_formula() {
-        let file = "../test_formulas/add4.unsat";
+        let file = "../test_formulas/add32.unsat";
         let mut solver = Solver::from_cnf(CNF::from_file_str(file));
         assert_eq!(solver.solve(), file.contains(".sat"));
     }

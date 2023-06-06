@@ -13,6 +13,9 @@ pub struct ConflictAnalysis {
     derived_clause: Vec<Literal>,
 
     current_level_lit_count: usize,
+
+    /// the decision level that will be the target of the non-chronological backtrack
+    target_decision_level: u32,
 }
 
 /// analyzes a  conflict
@@ -31,9 +34,9 @@ pub fn analyze(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut Bc
     // derive the first UIP
     derive_1_uip(conflict, analysis, bcp);
 
-    let target_decision_level = prepare_for_backtracking(analysis, bcp);
+    analysis.target_decision_level = prepare_for_backtracking(analysis, bcp);
 
-    trail::backtrack(bcp, target_decision_level);
+    trail::backtrack(bcp, analysis.target_decision_level);
     learn_and_assign(analysis, bcp);
 }
 
@@ -148,6 +151,57 @@ mod test {
     use crate::cnf::CNF;
     use crate::literal::Variable;
     use crate::resize::Resize;
+
+    #[test]
+    fn test_non_chronological_backtracking() {
+        // from https://baldur.iti.kit.edu/sat/files/2019/l07.pdf
+        let cnf = CNF::from_dimacs(
+            "1 2 0\n2 3 0\n-1 -4 5 0\n-1 4 6 0\n-1 -5 6 0\n-1 4 -6 0\n-1 -5 -6 0\n",
+        );
+
+        let mut analysis = ConflictAnalysis::default();
+        let mut bcp = BcpContext::default();
+        bcp.resize(cnf.variable_count());
+        for c in cnf.clauses().iter() {
+            bcp.add_clause(c.literals());
+        }
+
+        decide_and_assign(&mut bcp, Literal::from_dimacs(1));
+        decide_and_assign(&mut bcp, Literal::from_dimacs(2));
+        decide_and_assign(&mut bcp, Literal::from_dimacs(3));
+        decide_and_assign(&mut bcp, Literal::from_dimacs(4));
+        decide_and_assign(&mut bcp, Literal::from_dimacs(5));
+
+        let conflict = propagate(&mut bcp).unwrap_err();
+
+        let mut conflict_lits = conflict.get_literals(&bcp).to_vec();
+        conflict_lits.sort_unstable();
+
+        // conflicting clause is [-1 -5 -6]
+        assert_eq!(
+            conflict_lits,
+            vec![
+                Literal::from_dimacs(-1),
+                Literal::from_dimacs(-5),
+                Literal::from_dimacs(-6)
+            ]
+        );
+
+        analyze(conflict, &mut analysis, &mut bcp);
+
+        // should know that literals 2 and 3 play no role in the conflict
+        // and non-chronologically backtrack to decision level 1 (flipping literal 1)
+        assert_eq!(analysis.target_decision_level, 1);
+
+        let mut derived_clause = analysis.derived_clause;
+        derived_clause.sort_unstable();
+
+        // derived clause (1UIP) is [-1 -5]
+        assert_eq!(
+            derived_clause,
+            vec![Literal::from_dimacs(-1), Literal::from_dimacs(-5),]
+        );
+    }
 
     #[test]
     fn test_learn_unit_clause() {

@@ -38,6 +38,7 @@ impl Resize for BcpContext {
         self.assignment.resize(var_count);
         self.binary_clauses.resize(var_count);
         self.watch.resize(var_count);
+        self.trail.resize(var_count);
     }
 }
 
