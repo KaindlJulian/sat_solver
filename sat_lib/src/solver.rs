@@ -84,12 +84,8 @@ mod tests {
 
     #[test]
     fn test_all_formulas() {
-        let excluded = vec!["add64.unsat", "add128.unsat"];
         for entry in fs::read_dir(PathBuf::from("../test_formulas")).unwrap() {
             let file = entry.unwrap();
-            if excluded.contains(&&file.file_name().to_str().unwrap()) {
-                continue;
-            }
             dbg!(file.file_name());
             let mut solver = Solver::from_cnf(CNF::from_file(file.path()));
             let sat = solver.solve();
