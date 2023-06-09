@@ -11,8 +11,9 @@ __Help:__
 Usage: sat_cli <FILE>
 
 Arguments:
-  <FILE>  dimacs cnf file
+  <FILE>  A dimacs cnf file
 
 Options:
-  -h, --help  Print help
+      --no-dlis  Disable DLIS decision heuristic
+  -h, --help     Print help
 ```
