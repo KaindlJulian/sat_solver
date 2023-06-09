@@ -1,2 +1,3 @@
 [workspace]
 members = ["sat_lib", "sat_cli"]
+resolver = "2"

@@ -1,4 +1,5 @@
 use crate::literal::{Literal, Variable};
+use crate::resize::Resize;
 use std::ops::Not;
 
 /// Possible assignment values for a variable
@@ -29,11 +30,13 @@ pub struct VariableAssignment {
     partial: Vec<AssignedValue>,
 }
 
-impl VariableAssignment {
-    pub fn resize(&mut self, var_count: usize) {
+impl Resize for VariableAssignment {
+    fn resize(&mut self, var_count: usize) {
         self.partial.resize(var_count, AssignedValue::Unknown);
     }
+}
 
+impl VariableAssignment {
     pub fn assign_true(&mut self, lit: Literal) {
         self.partial[lit.variable().index() as usize] = if lit.is_positive() {
             AssignedValue::True
@@ -57,6 +60,14 @@ impl VariableAssignment {
         } else {
             !variable_value
         }
+    }
+
+    pub fn literal_is_true(&self, lit: Literal) -> bool {
+        self.literal_value(lit) == AssignedValue::True
+    }
+
+    pub fn literal_is_unknown(&self, lit: Literal) -> bool {
+        self.literal_value(lit) == AssignedValue::Unknown
     }
 
     /// Returns the literals that are assigned

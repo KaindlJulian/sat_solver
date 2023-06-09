@@ -4,7 +4,6 @@ use crate::literal::Literal;
 use crate::resize::Resize;
 use crate::search::dlis::Dlis;
 
-
 mod dlis;
 mod first_unassigned;
 
@@ -44,7 +43,7 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
         }
         Ok(_) => {
             if let Some(literal) = make_decision(ctx) {
-                // no conflict but not all variables are assigned -> heuristic decision
+                // no conflict but not all variables are assigned -> solver decision
                 trail::decide_and_assign(&mut ctx.bcp, literal);
             } else {
                 // no conflict and all variables assigned -> SAT
@@ -56,10 +55,14 @@ pub fn search(ctx: &mut SearchContext) -> Option<bool> {
     None
 }
 
-fn make_decision(search_context: &mut SearchContext) -> Option<Literal> {
-    if search_context.use_dlis {
-        dlis::dlis(&mut search_context.dlis, &search_context.bcp.assignment)
+fn make_decision(ctx: &mut SearchContext) -> Option<Literal> {
+    if ctx.use_dlis {
+        ctx.dlis.decide(
+            &ctx.bcp.assignment,
+            &ctx.bcp.long_clauses,
+            &ctx.bcp.binary_clauses,
+        )
     } else {
-        first_unassigned::first_unassigned(&search_context.bcp.assignment)
+        first_unassigned::first_unassigned(&ctx.bcp.assignment)
     }
 }

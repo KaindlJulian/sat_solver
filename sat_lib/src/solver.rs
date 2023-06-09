@@ -17,16 +17,12 @@ impl Solver {
             variable_count: cnf.variable_count(),
         };
 
+        solver.search.use_dlis = true;
         solver.search.resize(solver.variable_count);
 
         for c in cnf.clauses().iter() {
             solver.add_clause(c.literals());
         }
-
-        solver.search.dlis.build_dlis_entries(
-            &solver.search.bcp.binary_clauses,
-            &solver.search.bcp.long_clauses,
-        );
 
         solver
     }
@@ -35,8 +31,8 @@ impl Solver {
         Self::from_cnf(CNF::from_clauses(&clauses))
     }
 
-    pub fn with_dlis(mut self) -> Self {
-        self.search.use_dlis = true;
+    pub fn without_dlis(mut self) -> Self {
+        self.search.use_dlis = false;
         self
     }
 
@@ -77,8 +73,8 @@ mod tests {
 
     #[test]
     fn test_formula() {
-        let file = "../test_formulas/add32.unsat";
-        let mut solver = Solver::from_cnf(CNF::from_file_str(file));
+        let file = "../test_formulas/add64.unsat";
+        let mut solver = Solver::from_cnf(CNF::from_file_str(file)).without_dlis();
         assert_eq!(solver.solve(), file.contains(".sat"));
     }
 
@@ -87,7 +83,7 @@ mod tests {
         for entry in fs::read_dir(PathBuf::from("../test_formulas")).unwrap() {
             let file = entry.unwrap();
             dbg!(file.file_name());
-            let mut solver = Solver::from_cnf(CNF::from_file(file.path()));
+            let mut solver = Solver::from_cnf(CNF::from_file(file.path())).without_dlis();
             let sat = solver.solve();
             dbg!(sat);
             assert_eq!(sat, file.file_name().to_str().unwrap().contains(".sat"));

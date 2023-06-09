@@ -42,7 +42,7 @@ impl BinaryClauses {
     }
 
     /// Returns the number of binary clauses with this literal
-    pub fn clauses_count(&self, literal: Literal) -> usize {
-        self.literal_lookup[literal.as_index()].len()
+    pub fn clauses_count(&self, literal: Literal) -> u32 {
+        self.literal_lookup[literal.as_index()].len() as u32
     }
 }

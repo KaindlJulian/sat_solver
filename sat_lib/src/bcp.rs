@@ -76,6 +76,7 @@ impl BcpContext {
 }
 
 /// Repeatedly execute BCP until a fixpoint or conflict is reached
+#[inline(always)]
 pub fn propagate(bcp: &mut BcpContext) -> Result<(), Conflict> {
     while let Some(literal) = bcp.trail.next_unpropagated_literal() {
         bcp_binary_clauses(bcp, literal)?;
@@ -87,6 +88,7 @@ pub fn propagate(bcp: &mut BcpContext) -> Result<(), Conflict> {
     Ok(())
 }
 
+#[inline(always)]
 fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conflict> {
     // look at all clauses containing !literal
     let not_literal = !literal;
@@ -116,6 +118,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     Ok(())
 }
 
+#[inline(always)]
 fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conflict> {
     let mut result = Ok(());
 
