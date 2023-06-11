@@ -10,7 +10,7 @@ pub static TOP_DECISION_LEVEL: u32 = 0;
 
 #[derive(Debug, PartialEq)]
 pub enum Reason {
-    /// Decided by the solver/heuristic
+    /// Decided by the solver
     SolverDecision,
     /// Implied by a unit clause
     Unit,
@@ -21,8 +21,8 @@ pub enum Reason {
 }
 
 impl Reason {
-    /// Returns the falsified literals that cause the propagation
-    pub fn get_falsified_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
+    /// Returns the falsified literals that caused the propagation
+    pub fn causing_literals<'a>(&'a self, context: &'a BcpContext) -> &[Literal] {
         match self {
             Reason::SolverDecision | Reason::Unit => &[],
             Reason::Binary(literal) => std::slice::from_ref(literal),
@@ -41,6 +41,7 @@ pub struct Step {
 #[derive(Debug)]
 pub struct Trail {
     steps: Vec<Step>,
+    /// maps a variable to the index of the corresponding entry in `steps`
     step_index_by_var: Vec<StepIndex>,
     propagated: usize,
     decisions: Vec<u32>,

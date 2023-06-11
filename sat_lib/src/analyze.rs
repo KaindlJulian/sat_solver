@@ -67,7 +67,7 @@ pub fn derive_1_uip(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &m
             break;
         } else {
             // add asserting literals (that caused propagation) to get resolvent
-            for &asserting_literal in step.reason.get_falsified_literals(bcp) {
+            for &asserting_literal in step.reason.causing_literals(bcp) {
                 add_literal(analysis, &bcp.trail, asserting_literal);
             }
         }

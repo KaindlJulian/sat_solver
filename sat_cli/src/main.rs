@@ -24,10 +24,10 @@ fn main() {
     }
 
     if solver.solve() {
-        println!("SATIFIABLE");
+        println!("SATISFIABLE");
         std::process::exit(10);
     } else {
-        println!("UNSATIFIABLE");
+        println!("UNSATISFIABLE");
         std::process::exit(20);
     }
 }
