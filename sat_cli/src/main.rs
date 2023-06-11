@@ -25,6 +25,7 @@ fn main() {
 
     if solver.solve() {
         println!("SATISFIABLE");
+        println!("assignment: {:?}", solver.assignment());
         std::process::exit(10);
     } else {
         println!("UNSATISFIABLE");

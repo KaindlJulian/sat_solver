@@ -36,7 +36,7 @@ impl Solver {
         self
     }
 
-    /// Adds a clause to the formula, can break invariants if adding new variables
+    /// Adds a clause to the formula, can break invariants if introducing new variables
     pub fn add_clause(&mut self, clause: &[Literal]) {
         self.search.bcp.add_clause(clause);
     }
@@ -50,13 +50,13 @@ impl Solver {
         }
     }
 
-    /// Returns the (partial) assignment
+    /// Returns the current assignment, literals with unknown value are falsified
     pub fn assignment(&self) -> Vec<Literal> {
-        self.search.bcp.assignment.partial()
+        self.search.bcp.assignment.assignment()
     }
 
     /// Returns the value assigned to a literal
-    pub fn value(&self, literal: Literal) -> Option<bool> {
+    pub fn value_of(&self, literal: Literal) -> Option<bool> {
         match self.search.bcp.assignment.literal_value(literal) {
             AssignedValue::True => Some(true),
             AssignedValue::False => Some(false),
