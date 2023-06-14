@@ -93,7 +93,7 @@ fn bcp_binary_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Conf
     // look at all clauses containing !literal
     let not_literal = !literal;
 
-    for entry in bcp.binary_clauses.clauses(!literal) {
+    for entry in bcp.binary_clauses.clauses(not_literal) {
         match bcp.assignment.literal_value(entry.other_literal) {
             // the other literal is true -> already satisfied
             AssignedValue::True => {
@@ -128,8 +128,8 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
     let mut removed_watch_indices: Vec<usize> = vec![];
 
     'watches: for (watch_index, watch) in watches.iter_mut().enumerate() {
-        // the clause is already satisfied by the blocking literal
-        if bcp.assignment.literal_value(watch.satisfying_literal) == AssignedValue::True {
+        // the clause is already satisfied by our stored satisfying literal
+        if bcp.assignment.literal_is_true(watch.satisfying_literal) {
             continue;
         }
 
@@ -144,7 +144,7 @@ fn bcp_long_clauses(bcp: &mut BcpContext, literal: Literal) -> Result<(), Confli
         };
 
         // the clause is already satisfied by the other watched literal
-        if bcp.assignment.literal_value(watched_literal_2) == AssignedValue::True {
+        if bcp.assignment.literal_is_true(watched_literal_2) {
             watch.satisfying_literal = watched_literal_2;
             continue;
         }
@@ -295,10 +295,13 @@ mod tests {
 
             match propagate(&mut bcp) {
                 Ok(_) => {
-                    println!("OK");
+                    println!("{} is not a failed literal", test_lit);
                 }
                 Err(conflict) => {
-                    dbg!(conflict);
+                    println!(
+                        "{} is a failed literal, because of conflict: {:?}",
+                        test_lit, conflict
+                    );
                 }
             }
         }

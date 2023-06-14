@@ -25,6 +25,7 @@ pub fn analyze(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &mut Bc
         trail::TOP_DECISION_LEVEL
     );
 
+    // resize analysis container for this conflict
     let new_len = analysis
         .conflict_literals
         .len()
