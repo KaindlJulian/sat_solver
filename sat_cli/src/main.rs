@@ -24,11 +24,11 @@ fn main() {
     }
 
     if solver.solve() {
-        println!("SATISFIABLE");
-        println!("assignment: {:?}", solver.assignment());
+        println!("s SATISFIABLE");
+        println!("v {:?}", solver.assignment());
         std::process::exit(10);
     } else {
-        println!("UNSATISFIABLE");
+        println!("s UNSATISFIABLE");
         std::process::exit(20);
     }
 }

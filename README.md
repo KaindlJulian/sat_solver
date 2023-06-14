@@ -4,7 +4,9 @@ __Compile and Run:__
 
 ````
 $ cargo build --release
-$ ./target/release/sat_cli ./test_formulas/add4.unsat
+$ ./target/release/sat_cli ./test_formulas/sat1.sat
+s SATISFIABLE
+v [1, 2]
 ````
 __Help:__
 ```
