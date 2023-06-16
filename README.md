@@ -1,4 +1,4 @@
-![](https://github.com/kaindljulian/sat_solver/actions/workflows/build_and_test.yml/badge.svg)
+![](https://github.com/kaindljulian/satotz/actions/workflows/build_and_test.yml/badge.svg)
 
 __Compile and Run:__
 
