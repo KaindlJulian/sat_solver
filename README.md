@@ -4,13 +4,13 @@ __Compile and Run:__
 
 ````
 $ cargo build --release
-$ ./target/release/sat_cli ./test_formulas/sat1.sat
+$ ./target/release/satotz ./test_formulas/sat1.sat
 s SATISFIABLE
 v [1, 2]
 ````
 __Help:__
 ```
-Usage: sat_cli <FILE>
+Usage: satotz <FILE>
 
 Arguments:
   <FILE>  A dimacs cnf file

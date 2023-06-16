@@ -3,6 +3,10 @@ name = "satotz_cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+path = "src/main.rs"
+name = "satotz"
+
 [dependencies]
 satotz_lib = { path = "../satotz_lib" }
 clap = { version = "4.1.1", features = ["derive"] }
