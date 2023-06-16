@@ -1,8 +1,8 @@
 [package]
-name = "sat_cli"
+name = "satotz_cli"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sat_lib = { path = "../sat_lib" }
+satotz_lib = { path = "../satotz_lib" }
 clap = { version = "4.1.1", features = ["derive"] }

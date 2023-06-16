@@ -42,11 +42,6 @@ impl BinaryClauses {
         &mut self.literal_lookup[literal.as_index()]
     }
 
-    /// Returns the number of binary clauses with this literal
-    pub fn clauses_count(&self, literal: Literal) -> u32 {
-        self.literal_lookup[literal.as_index()].len() as u32
-    }
-
     /// Returns the number of unresolved binary clauses with this literal
     pub fn unresolved_clauses_count(&self, literal: Literal, assignment: &VariableAssignment) -> u32 {
         self.literal_lookup[literal.as_index()].iter().filter(|c| assignment.literal_is_unknown(c.other_literal)).count() as u32

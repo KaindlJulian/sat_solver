@@ -44,6 +44,7 @@ impl Resize for BcpContext {
 }
 
 impl BcpContext {
+    #[allow(dead_code)] // used for tests
     pub fn from_cnf(cnf: &CNF) -> BcpContext {
         let mut bcp = BcpContext::default();
         bcp.resize(cnf.variable_count());

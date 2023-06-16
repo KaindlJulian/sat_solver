@@ -1,6 +1,6 @@
 use clap::Parser;
-use sat_lib::cnf::CNF;
-use sat_lib::solver::Solver;
+use satotz_lib::cnf::CNF;
+use satotz_lib::solver::Solver;
 use std::path::PathBuf;
 
 #[derive(Parser)]
