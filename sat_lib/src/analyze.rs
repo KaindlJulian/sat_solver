@@ -161,11 +161,7 @@ mod test {
         );
 
         let mut analysis = ConflictAnalysis::default();
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
         decide_and_assign(&mut bcp, Literal::from_dimacs(2));
@@ -209,11 +205,7 @@ mod test {
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 0\n-4 1 0\n");
 
         let mut analysis = ConflictAnalysis::default();
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(4));
 
@@ -245,11 +237,7 @@ mod test {
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
 
         let mut analysis = ConflictAnalysis::default();
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
@@ -297,11 +285,7 @@ mod test {
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -4 -5 0\n-6 7 0\n-7 4 0\n-7 5 0\n");
 
         let mut analysis = ConflictAnalysis::default();
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 

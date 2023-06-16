@@ -43,23 +43,7 @@ impl Dlis {
             return None;
         }
 
-        // clear scores
-        self.lit_scores.iter_mut().for_each(|s| *s = 0);
-
-        for l in unassigned_literals {
-            self.lit_scores[l.as_index()] += binary.clauses_count(l);
-        }
-
-        for c in long.clauses() {
-            if c.literals().iter().any(|l| assignment.literal_is_true(*l)) {
-                continue;
-            }
-            for l in c.literals() {
-                if assignment.literal_is_unknown(*l) {
-                    self.lit_scores[l.as_index()] += 1;
-                }
-            }
-        }
+        self.calculate_literal_scores(unassigned_literals, assignment, long, binary);
 
         let mut max_score: u32 = 0;
         let mut max_lit_code = 0;
@@ -76,11 +60,37 @@ impl Dlis {
             None
         }
     }
+
+    fn calculate_literal_scores(
+        &mut self,
+        unassigned_literals: Vec<Literal>,
+        assignment: &VariableAssignment,
+        long: &LongClauses,
+        binary: &BinaryClauses,
+    ) {
+        self.lit_scores.iter_mut().for_each(|s| *s = 0);
+
+        for l in unassigned_literals {
+            self.lit_scores[l.as_index()] += binary.unresolved_clauses_count(l, assignment);
+        }
+
+        for c in long.clauses() {
+            if c.literals().iter().any(|l| assignment.literal_is_true(*l)) {
+                continue;
+            }
+            for l in c.literals() {
+                if assignment.literal_is_unknown(*l) {
+                    self.lit_scores[l.as_index()] += 1;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::bcp::BcpContext;
+    use crate::cnf::CNF;
 
     use super::*;
 
@@ -133,5 +143,33 @@ mod tests {
         let decision = dlis.decide(&bcp.assignment, &bcp.long_clauses, &bcp.binary_clauses);
 
         assert!(decision.is_none());
+    }
+
+    #[test]
+    fn test_literal_scores() {
+        let cnf = CNF::from_dimacs("1 3 2 0\n-2 3 4 0\n-2 1 0\n2 3 0\n");
+        let mut bcp = BcpContext::from_cnf(&cnf);
+        bcp.assignment.assign_true(Literal::from_dimacs(1));
+
+        let mut dlis = Dlis::default();
+        dlis.resize(4);
+
+        let unassigned = vec![
+            Literal::from_dimacs(2),
+            Literal::from_dimacs(-2),
+            Literal::from_dimacs(3),
+            Literal::from_dimacs(-3),
+            Literal::from_dimacs(4),
+            Literal::from_dimacs(-4),
+        ];
+
+        dlis.calculate_literal_scores(
+            unassigned,
+            &bcp.assignment,
+            &bcp.long_clauses,
+            &bcp.binary_clauses,
+        );
+
+        assert_eq!(dlis.lit_scores, vec![0, 0, 1, 1, 2, 0, 1, 0])
     }
 }

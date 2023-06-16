@@ -31,6 +31,7 @@ impl Reason {
     }
 }
 
+/// A step in the implication graph
 #[derive(Debug)]
 pub struct Step {
     pub assigned_literal: Literal,
@@ -40,6 +41,7 @@ pub struct Step {
 
 #[derive(Debug)]
 pub struct Trail {
+    /// represents the implication graph
     steps: Vec<Step>,
     /// maps a variable to the index of the corresponding entry in `steps`
     step_index_by_var: Vec<StepIndex>,

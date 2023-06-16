@@ -5,6 +5,7 @@ use crate::bcp::long_clauses::LongClauses;
 use crate::bcp::trail::{Reason, Step, Trail};
 use crate::bcp::watch::Watchlists;
 use crate::clause::ClauseIndex;
+use crate::cnf::CNF;
 use crate::literal::Literal;
 use crate::resize::Resize;
 
@@ -43,6 +44,17 @@ impl Resize for BcpContext {
 }
 
 impl BcpContext {
+    pub fn from_cnf(cnf: &CNF) -> BcpContext {
+        let mut bcp = BcpContext::default();
+        bcp.resize(cnf.variable_count());
+
+        for c in cnf.clauses() {
+            bcp.add_clause(c.literals());
+        }
+
+        bcp
+    }
+
     pub fn add_clause(&mut self, literals: &[Literal]) -> AddedClause {
         match *literals {
             [] => {
@@ -213,13 +225,7 @@ mod tests {
     #[test]
     fn test_basic_bcp() {
         let cnf = CNF::from_dimacs("-1 2 0\n-2 3 0\n-2 -3 -4 0\n6 7 0\n");
-
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
@@ -238,12 +244,7 @@ mod tests {
     #[test]
     fn test_basic_conflict() {
         let cnf = CNF::from_dimacs("-1 2 0\n-1 3 0\n-2 -3 0\n");
-
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(1));
 
@@ -256,14 +257,29 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_5_conflict() {
-        let cnf = CNF::from_dimacs("-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0\n");
+    fn test_exercise_2_bcp_fixpoint() {
+        let cnf = CNF::from_dimacs("1 2 3 0\n-1 2 0\n-2 0\n-1 -2 0\n-3 -4 5 6 0\n-3 4 0\n");
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
-        let mut bcp = BcpContext::default();
-        bcp.resize(cnf.variable_count());
-        for c in cnf.clauses().iter() {
-            bcp.add_clause(c.literals());
-        }
+        assert!(propagate(&mut bcp).is_ok());
+
+        let assignment = bcp
+            .trail
+            .steps()
+            .iter()
+            .map(|s| s.assigned_literal)
+            .map(|l| l.as_dimacs_integer())
+            .collect::<Vec<_>>();
+
+        assert_eq!(assignment, vec![-2, -1, 3, 4]);
+    }
+
+    #[test]
+    fn test_exercise_5_conflict() {
+        let cnf = CNF::from_dimacs(
+            "-1 2 0\n-1 3 9 0\n-2 -3 4 0\n-4 5 10 0\n-4 6 11 0\n-5 -6 0\n1 7 -12 0\n1 8 0\n-7 -8 -13 0\n"
+        );
+        let mut bcp = BcpContext::from_cnf(&cnf);
 
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-9));
         trail::decide_and_assign(&mut bcp, Literal::from_dimacs(-10));
@@ -276,20 +292,16 @@ mod tests {
                 // expect conflict with clause c6: [-5, -6]
                 assert_eq!(literals, cnf.clauses()[5].literals());
             }
-            _ => panic!("expected a conflict from binary clause"),
+            _ => panic!("expected a conflict with binary clause"),
         };
     }
 
     #[test]
     fn test_exercise_6_failed_literals() {
-        for test_lit in [-1, 3, 4, 1, -2] {
-            let cnf = CNF::from_dimacs("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
+        let cnf = CNF::from_dimacs("-1 3 2 0\n-1 3 -2 0\n4 1 0\n-4 1 0\n");
 
-            let mut bcp = BcpContext::default();
-            bcp.resize(cnf.variable_count());
-            for c in cnf.clauses().iter() {
-                bcp.add_clause(c.literals());
-            }
+        for test_lit in [-1, 3, 4, 1, -2] {
+            let mut bcp = BcpContext::from_cnf(&cnf);
 
             trail::decide_and_assign(&mut bcp, Literal::from_dimacs(test_lit));
 
