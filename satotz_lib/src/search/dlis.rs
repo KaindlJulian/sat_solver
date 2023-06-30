@@ -55,7 +55,7 @@ impl Dlis {
         }
 
         if max_score > 0 {
-            Some(Literal::from_code(max_lit_code as usize))
+            Some(Literal::from_code(max_lit_code))
         } else {
             None
         }

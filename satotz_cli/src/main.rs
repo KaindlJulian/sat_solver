@@ -4,9 +4,9 @@ use satotz_lib::solver::Solver;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[group(required = true)]
 struct Args {
     /// A dimacs cnf file
+    #[clap(required = true)]
     file: PathBuf,
 
     /// Disable DLIS decision heuristic

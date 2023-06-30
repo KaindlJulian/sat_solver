@@ -1,0 +1,13 @@
+[package]
+name = "satotz_web"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+leptos = "0.3.0"
+satotz_lib = { path = "../satotz_lib" }
+
+[dev-dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-test = "0.3.0"
+web-sys = "0.3"

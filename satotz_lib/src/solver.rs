@@ -50,6 +50,11 @@ impl Solver {
         }
     }
 
+    pub fn step(&mut self) -> (&mut Self, Option<bool>) {
+        let step_result = search(&mut self.search);
+        (self, step_result)
+    }
+
     /// Returns the current assignment, literals with unknown value are falsified
     pub fn assignment(&self) -> Vec<Literal> {
         self.search.bcp.assignment.assignment()

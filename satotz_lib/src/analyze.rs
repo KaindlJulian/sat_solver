@@ -49,6 +49,7 @@ pub fn derive_1_uip(conflict: Conflict, analysis: &mut ConflictAnalysis, bcp: &m
         add_literal(analysis, &bcp.trail, literal)
     }
 
+    // start with the last assigned literal and scan backwards
     for step_index in (0..bcp.trail.steps().len()).rev() {
         if !std::mem::replace(&mut analysis.conflict_literals[step_index], false) {
             continue;
@@ -103,18 +104,19 @@ fn add_literal(analysis: &mut ConflictAnalysis, trail: &Trail, literal: Literal)
     }
 }
 
-fn prepare_for_backtracking(conflict: &mut ConflictAnalysis, bcp: &mut BcpContext) -> u32 {
-    let clause_length = conflict.derived_clause.len();
-    conflict.derived_clause.swap(0, clause_length - 1);
+fn prepare_for_backtracking(analysis: &mut ConflictAnalysis, bcp: &mut BcpContext) -> u32 {
+    let clause_length = analysis.derived_clause.len();
+    analysis.derived_clause.swap(0, clause_length - 1);
+
     let mut backtrack_level = trail::TOP_DECISION_LEVEL;
 
     if clause_length > 1 {
-        let mut max_step_index = bcp.trail.step_index(conflict.derived_clause[1].variable());
+        let mut max_step_index = bcp.trail.step_index(analysis.derived_clause[1].variable());
         for i in 2..clause_length {
-            let step_index = bcp.trail.step_index(conflict.derived_clause[i].variable());
+            let step_index = bcp.trail.step_index(analysis.derived_clause[i].variable());
             if step_index > max_step_index {
                 max_step_index = step_index;
-                conflict.derived_clause.swap(1, i);
+                analysis.derived_clause.swap(1, i);
             }
         }
 
